@@ -56,13 +56,6 @@ android {
         exclude group: 'com.google.android.gms'
         exclude group: 'com.google.firebase'
     }
-    defaultConfig {
-        resConfigs "zh", "zh-rCN", "en"
-    }
-    configurations.all {
-        exclude group: 'com.google.android.gms'
-        exclude group: 'com.google.firebase'
-    }
     signingConfigs {
         if (resolvedReleaseStoreFile != null) {
             myConfig {
