@@ -370,35 +370,23 @@ fun RegexTestScreen(
                     Spacer(modifier = Modifier.height(12.dp))
                     
                     // 使用正则表达式选项
-					Row(
-					    modifier = Modifier.fillMaxWidth(),
-					    horizontalArrangement = Arrangement.spacedBy(8.dp)
-					) {
-					    Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-					        Checkbox(checked = ignoreCase, onCheckedChange = { ignoreCase = it })
-					        Text(
-					            text = stringResource(R.string.debug_regex_ignore_case),
-					            style = MaterialTheme.typography.bodySmall
-					        )
-					    }
-					    
-					    Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-					        Checkbox(checked = multiline, onCheckedChange = { multiline = it })
-					        Text(
-					            text = stringResource(R.string.debug_regex_multiline),
-					            style = MaterialTheme.typography.bodySmall
-					        )
-					    }
-					    
-					    Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-					        Checkbox(checked = dotAll, onCheckedChange = { dotAll = it })
-					        Text(
-					            text = stringResource(R.string.debug_regex_dot_all),
-					            style = MaterialTheme.typography.bodySmall
-					        )
-					    }
-					}
-
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(
+                                checked = useRegex,
+                                onCheckedChange = { useRegex = it }
+                            )
+                            Text(
+                                text = stringResource(R.string.use_regex),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                    
                     // 正则选项（仅在使用正则时显示）
                     if (useRegex) {
                         Spacer(modifier = Modifier.height(8.dp))
@@ -407,8 +395,7 @@ fun RegexTestScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            // 忽略大小写
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
                                 Checkbox(
                                     checked = ignoreCase,
                                     onCheckedChange = { ignoreCase = it }
@@ -419,8 +406,7 @@ fun RegexTestScreen(
                                 )
                             }
                             
-                            // 多行模式
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
                                 Checkbox(
                                     checked = multiline,
                                     onCheckedChange = { multiline = it }
@@ -431,8 +417,7 @@ fun RegexTestScreen(
                                 )
                             }
                             
-                            // 点匹配换行
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
                                 Checkbox(
                                     checked = dotAll,
                                     onCheckedChange = { dotAll = it }
