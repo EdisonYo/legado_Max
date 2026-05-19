@@ -395,7 +395,8 @@ fun RegexTestScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                            // 忽略大小写
+                            Row(verticalAlignment = Alignment.CenterVertically) {
                                 Checkbox(
                                     checked = ignoreCase,
                                     onCheckedChange = { ignoreCase = it }
@@ -406,7 +407,8 @@ fun RegexTestScreen(
                                 )
                             }
                             
-                            Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                            // 多行模式
+                            Row(verticalAlignment = Alignment.CenterVertically) {
                                 Checkbox(
                                     checked = multiline,
                                     onCheckedChange = { multiline = it }
@@ -417,7 +419,8 @@ fun RegexTestScreen(
                                 )
                             }
                             
-                            Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                            // 点匹配换行
+                            Row(verticalAlignment = Alignment.CenterVertically) {
                                 Checkbox(
                                     checked = dotAll,
                                     onCheckedChange = { dotAll = it }
