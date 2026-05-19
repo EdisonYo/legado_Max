@@ -213,8 +213,7 @@ fun ReadRecordScreen(
                                     DisplayMode.LATEST -> "最后阅读"
                                     DisplayMode.READ_TIME -> "阅读时长"
                                 },
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                style = MaterialTheme.typography.labelMedium
                             )
                         }
                     },
