@@ -169,7 +169,7 @@ class TextFontWeightConverter(context: Context, attrs: AttributeSet?) :
             val titleTextView = TextView(context).apply {
                 text = title
                 textSize = 18f
-                setTextColor(textColor)
+                setTextColor(accentColor)
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             }
             
