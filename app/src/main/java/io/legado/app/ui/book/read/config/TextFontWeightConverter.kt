@@ -257,7 +257,7 @@ class TextFontWeightConverter(context: Context, attrs: AttributeSet?) :
                 text = textValue.toString()
                 textSize = 18f
                 gravity = Gravity.CENTER
-                setTextColor(textColor)
+                setTextColor(accentColor)
             }
             
             // 正文字重名称
@@ -265,7 +265,7 @@ class TextFontWeightConverter(context: Context, attrs: AttributeSet?) :
                 text = getFontWeightName(textValue, fontWeightNames)
                 textSize = 14f
                 gravity = Gravity.CENTER
-                setTextColor(textColor)
+                setTextColor(accentColor)
             }
             
             // 正文 SeekBar
@@ -309,7 +309,7 @@ class TextFontWeightConverter(context: Context, attrs: AttributeSet?) :
                 text = titleValue.toString()
                 textSize = 18f
                 gravity = Gravity.CENTER
-                setTextColor(textColor)
+                setTextColor(accentColor)
             }
             
             // 标题字重名称
@@ -317,7 +317,7 @@ class TextFontWeightConverter(context: Context, attrs: AttributeSet?) :
                 text = getFontWeightName(titleValue, fontWeightNames)
                 textSize = 14f
                 gravity = Gravity.CENTER
-                setTextColor(textColor)
+                setTextColor(accentColor)
             }
             
             // 标题 SeekBar
@@ -362,13 +362,13 @@ class TextFontWeightConverter(context: Context, attrs: AttributeSet?) :
             val thinLabel = TextView(context).apply {
                 text = context.getString(R.string.text_bold_thin)
                 textSize = 12f
-                setTextColor(textColor)
+                setTextColor(accentColor)
             }
             
             val boldLabel = TextView(context).apply {
                 text = context.getString(R.string.text_bold_bold)
                 textSize = 12f
-                setTextColor(textColor)
+                setTextColor(accentColor)
             }
             
             addView(thinLabel, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
