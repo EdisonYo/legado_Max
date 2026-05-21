@@ -90,12 +90,12 @@ fun DebugLogItem(
                     if (log.category != io.legado.app.model.debug.DebugCategory.APP) {
                         Surface(
                             shape = MaterialTheme.shapes.small,
-                            color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
                         ) {
                             Text(
                                 text = log.category.name,
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )
                         }
