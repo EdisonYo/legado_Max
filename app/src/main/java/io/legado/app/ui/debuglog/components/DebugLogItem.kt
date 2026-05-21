@@ -84,18 +84,18 @@ fun DebugLogItem(
                     Text(
                         text = formatRelativeTime(log.time),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
                     if (log.category != io.legado.app.model.debug.DebugCategory.APP) {
                         Surface(
                             shape = MaterialTheme.shapes.small,
-                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                            color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
                         ) {
                             Text(
                                 text = log.category.name,
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )
                         }
@@ -152,7 +152,7 @@ private fun getContentColorByLevel(level: DebugLevel) = when (level) {
 private fun getDurationColor(durationMs: Long) = when {
     durationMs > 1000 -> MaterialTheme.colorScheme.error
     durationMs > 500 -> MaterialTheme.colorScheme.tertiary
-    else -> MaterialTheme.colorScheme.primary
+    else -> MaterialTheme.colorScheme.onSurfaceVariant
 }
 
 private fun formatRelativeTime(timestamp: Long): String {
