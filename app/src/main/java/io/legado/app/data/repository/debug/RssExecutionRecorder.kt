@@ -3,6 +3,8 @@ package io.legado.app.data.repository.debug
 import io.legado.app.model.debug.RssExecutionRecord
 import io.legado.app.model.debug.RssExecutionStatus
 import io.legado.app.model.debug.RssExecutionStep
+import io.legado.app.model.debug.RssRuleExecutionRecord
+import io.legado.app.model.debug.RuleExecutionTree
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -20,14 +22,26 @@ import java.util.UUID
 object RssExecutionRecorder {
 
     private const val MAX_RECORDS = 500
+    private const val MAX_RULE_RECORDS = 200
 
     private val records = ArrayDeque<RssExecutionRecord>()
+    private val ruleRecords = ArrayDeque<RssRuleExecutionRecord>()
 
     private val _recordsFlow = MutableSharedFlow<List<RssExecutionRecord>>(
         replay = 1,
         extraBufferCapacity = 16
     )
     val recordsFlow: SharedFlow<List<RssExecutionRecord>> = _recordsFlow.asSharedFlow()
+
+    private val _ruleRecordsFlow = MutableSharedFlow<List<RssRuleExecutionRecord>>(
+        replay = 1,
+        extraBufferCapacity = 16
+    )
+    /**
+     * 规则执行记录的响应式流
+     * 用于 UI 层实时订阅最新记录
+     */
+    val ruleRecordsFlow: SharedFlow<List<RssRuleExecutionRecord>> = _ruleRecordsFlow.asSharedFlow()
 
     val isEnabled: Boolean get() = io.legado.app.help.config.AppConfig.debugLogFloatingBall
 
@@ -142,7 +156,108 @@ object RssExecutionRecorder {
         synchronized(records) {
             records.clear()
         }
+        synchronized(ruleRecords) {
+            ruleRecords.clear()
+        }
         emitUpdate()
+        emitRuleRecordsUpdate()
+    }
+
+    /**
+     * 记录规则执行
+     *
+     * @param record 规则执行记录，包含执行树、输入输出等信息
+     */
+    fun recordRuleExecution(record: RssRuleExecutionRecord) {
+        if (!isEnabled) return
+        synchronized(ruleRecords) {
+            ruleRecords.addFirst(record)
+            while (ruleRecords.size > MAX_RULE_RECORDS) {
+                ruleRecords.removeLast()
+            }
+            emitRuleRecordsUpdate()
+        }
+    }
+
+    /**
+     * 获取当前所有规则执行记录
+     */
+    fun getCurrentRuleRecords(): List<RssRuleExecutionRecord> {
+        synchronized(ruleRecords) {
+            return ruleRecords.toList()
+        }
+    }
+
+    /**
+     * 记录规则执行成功
+     *
+     * @param step 执行步骤类型
+     * @param ruleContent 规则内容
+     * @param executionTree 规则执行树（包含嵌套规则执行详情）
+     * @param input 输入数据
+     * @param output 输出数据
+     * @param matchCount 匹配数量
+     * @param duration 执行耗时
+     */
+    fun ruleSuccess(
+        step: RssExecutionStep,
+        ruleContent: String? = null,
+        executionTree: RuleExecutionTree? = null,
+        input: String? = null,
+        output: String? = null,
+        matchCount: Int? = null,
+        duration: Long? = null
+    ) {
+        recordRuleExecution(RssRuleExecutionRecord(
+            step = step,
+            ruleContent = ruleContent,
+            executionTree = executionTree,
+            input = input?.take(200),
+            output = output?.take(200),
+            matchCount = matchCount,
+            duration = duration,
+            sourceUrl = currentSourceUrl,
+            sourceName = currentSourceName,
+            executionId = currentExecutionId
+        ))
+    }
+
+    /**
+     * 记录规则执行失败
+     *
+     * @param step 执行步骤类型
+     * @param ruleContent 规则内容
+     * @param error 错误信息
+     * @param duration 执行耗时
+     */
+    fun ruleFailed(
+        step: RssExecutionStep,
+        ruleContent: String? = null,
+        error: Throwable,
+        duration: Long? = null
+    ) {
+        recordRuleExecution(RssRuleExecutionRecord(
+            step = step,
+            ruleContent = ruleContent,
+            error = error,
+            duration = duration,
+            sourceUrl = currentSourceUrl,
+            sourceName = currentSourceName,
+            executionId = currentExecutionId
+        ))
+    }
+
+    /**
+     * 发射规则执行记录更新
+     *
+     * 将当前规则执行记录列表通过 Flow 发射给订阅者
+     */
+    private fun emitRuleRecordsUpdate() {
+        try {
+            _ruleRecordsFlow.tryEmit(getCurrentRuleRecords())
+        } catch (e: Exception) {
+            io.legado.app.model.Debug.log("RssExecutionRecorder", "emitRuleRecordsUpdate失败: ${e.message}")
+        }
     }
 
     private fun makeRecord(
