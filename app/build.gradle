@@ -49,13 +49,7 @@ android {
             languageVersion.set(JavaLanguageVersion.of(17))
         }
     }
-    defaultConfig {
-        resConfigs "zh", "zh-rCN", "en"
-    }
-    configurations.all {
-        exclude group: 'com.google.android.gms'
-        exclude group: 'com.google.firebase'
-    }
+
     signingConfigs {
         if (resolvedReleaseStoreFile != null) {
             myConfig {
@@ -311,6 +305,7 @@ dependencies {
     //Glide
     implementation(libs.glide.glide)
     implementation(libs.glide.okhttp)
+    implementation(libs.glide.compose)
     ksp(libs.glide.ksp)
     
     //Svg
