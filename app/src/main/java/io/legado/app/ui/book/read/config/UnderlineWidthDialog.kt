@@ -30,11 +30,10 @@ class UnderlineWidthDialog : BaseDialogFragment(R.layout.dialog_underline_width)
     override fun onStart() {
         super.onStart()
         dialog?.window?.run {
-            clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
             setBackgroundDrawableResource(R.color.background)
             decorView.setPadding(0, 0, 0, 0)
             val attr = attributes
-            attr.dimAmount = 0.0f
+            attr.dimAmount = 0.5f
             attr.gravity = Gravity.BOTTOM
             attributes = attr
             setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
@@ -62,6 +61,10 @@ class UnderlineWidthDialog : BaseDialogFragment(R.layout.dialog_underline_width)
         binding.tvTitle.setTextColor(textColor)
         binding.tvValue.setTextColor(textColor)
         binding.tvOffsetValue.setTextColor(textColor)
+        binding.tvWidthThin.setTextColor(textColor)
+		binding.tvWidthThick.setTextColor(textColor)
+		binding.tvOffsetNear.setTextColor(textColor)
+		binding.tvOffsetFar.setTextColor(textColor)
 
         // 下划线粗细：范围 0.5~5.0dp，共10档
         val currentWidth = ReadBookConfig.durConfig.underlineWidth
