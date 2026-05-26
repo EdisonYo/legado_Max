@@ -10,6 +10,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_gravity="bottom"
+        android:background="@drawable/shape_highlight_rule_sheet"
         android:clickable="true"
         android:focusable="true"
         android:orientation="vertical"
