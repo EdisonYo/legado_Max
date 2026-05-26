@@ -57,7 +57,7 @@ class HighlightRuleConfigDialog : BaseDialogFragment(R.layout.dialog_highlight_r
         super.onStart()
         setLayout(ViewGroup.LayoutParams.MATCH_PARENT, 0.85f)
         dialog?.window?.setGravity(Gravity.BOTTOM)
-        dialog?.window?.decorView.setPadding(0, 0, 0, 0)
+        dialog?.window?.setBackgroundDrawableResource(R.drawable.shape_highlight_rule_sheet)
     }
 
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
@@ -107,6 +107,7 @@ class HighlightRuleConfigDialog : BaseDialogFragment(R.layout.dialog_highlight_r
         }
         previewBgColor = cardBgColor
         previewStrokeColor = cardStrokeColor
+
         binding.sheetContainer.background?.mutate()?.setTint(bg)
         binding.ivClose.setColorFilter(primaryTextColor, PorterDuff.Mode.SRC_IN)
         binding.ivClose.background?.mutate()?.setTint(accentColor)
@@ -402,12 +403,14 @@ class HighlightRuleConfigDialog : BaseDialogFragment(R.layout.dialog_highlight_r
             val density = binding.root.context.resources.displayMetrics.density
             binding.root.background = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
+                cornerRadius = 24f * density
                 setColor(cardBgColor)
                 setStroke((1f * density).toInt().coerceAtLeast(1), cardStrokeColor)
             }
             binding.tvPattern.background?.mutate()?.setTint(accentColor)
             binding.tvPreview.background = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
+                cornerRadius = 20f * density
                 setColor(previewBgColor)
                 setStroke((1f * density).toInt().coerceAtLeast(1), previewStrokeColor)
             }
