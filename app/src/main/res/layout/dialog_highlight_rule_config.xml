@@ -16,13 +16,6 @@
         android:orientation="vertical"
         android:paddingTop="12dp">
 
-        <View
-            android:id="@+id/drag_handle"
-            android:layout_width="96dp"
-            android:layout_height="8dp"
-            android:layout_gravity="center_horizontal"
-            android:background="@drawable/shape_highlight_rule_handle" />
-
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
