@@ -63,7 +63,6 @@ class HighlightRuleConfigDialog : BaseDialogFragment(R.layout.dialog_highlight_r
     override fun onFragmentCreated(view: View, savedInstanceState: Bundle?) {
         initTheme()
         attachBottomSheetDismiss(
-            binding.dragHandle,
             binding.sheetContainer
         ) { dismissAllowingStateLoss() }
 
