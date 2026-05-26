@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Surface
 import androidx.compose.foundation.layout.Box
@@ -143,7 +144,7 @@ fun DebugLogScreen(
 		        // 紧凑工具栏：无标题、无返回占位、图标右对齐
 		        Surface(
 		            color = topBarColor,
-		            modifier = Modifier.fillMaxWidth()
+		            modifier = Modifier.fillMaxWidth().statusBarsPadding()
 		        ) {
 		            Row(
 		                modifier = Modifier
