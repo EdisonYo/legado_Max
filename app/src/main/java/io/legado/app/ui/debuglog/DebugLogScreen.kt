@@ -3,10 +3,6 @@ package io.legado.app.ui.debuglog
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.height
-import androidx.compose.material3.Surface
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -38,6 +34,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -141,36 +139,28 @@ fun DebugLogScreen(
     Scaffold(
 		topBar = {
 		    Column {
-		        // 紧凑工具栏：无标题、无返回占位、图标右对齐
-		        Surface(
-		            color = topBarColor,
-		            modifier = Modifier.fillMaxWidth().statusBarsPadding()
-		        ) {
-		            Row(
-		                modifier = Modifier
-		                    .fillMaxWidth()
-		                    .height(48.dp)
-		                    .padding(horizontal = 4.dp),
-		                verticalAlignment = Alignment.CenterVertically,
-		                horizontalArrangement = Arrangement.End
-		            ) {
+		        TopAppBar(
+		            colors = TopAppBarDefaults.topAppBarColors(
+		                containerColor = topBarColor,
+		                scrolledContainerColor = topBarColor,
+		                navigationIconContentColor = MaterialTheme.colorScheme.onSecondary,
+		                titleContentColor = MaterialTheme.colorScheme.onSecondary,
+		                actionIconContentColor = MaterialTheme.colorScheme.onSecondary
+		            ),
+		            title = { },
+		            navigationIcon = { },
+		            actions = {
 		                // 刷新
 		                IconButton(onClick = {
 		                    viewModel.refreshLogs()
 		                    viewModel.refreshFlowLogs()
 		                    viewModel.refreshRssExecutionRecords()
 		                }) {
-		                    Icon(
-		                        imageVector = Icons.Default.Refresh,
-		                        contentDescription = "刷新"
-		                    )
+		                    Icon(Icons.Default.Refresh, contentDescription = "刷新")
 		                }
 		                // 搜索
 		                IconButton(onClick = { showSearch = !showSearch }) {
-		                    Icon(
-		                        imageVector = Icons.Default.Search,
-		                        contentDescription = "搜索"
-		                    )
+		                    Icon(Icons.Default.Search, contentDescription = "搜索")
 		                }
 		                // 暂停/继续
 		                IconButton(onClick = { viewModel.togglePause() }) {
@@ -179,12 +169,9 @@ fun DebugLogScreen(
 		                        contentDescription = if (isPaused) "继续" else "暂停"
 		                    )
 		                }
-		                // 清空日志
+		                // 清空
 		                IconButton(onClick = { viewModel.clearLogs() }) {
-		                    Icon(
-		                        imageVector = Icons.Default.Delete,
-		                        contentDescription = "清空"
-		                    )
+		                    Icon(Icons.Default.Delete, contentDescription = "清空")
 		                }
 		                // 关闭调试球
 		                IconButton(onClick = {
@@ -202,10 +189,7 @@ fun DebugLogScreen(
 		                var showOverflowMenu by remember { mutableStateOf(false) }
 		                Box {
 		                    IconButton(onClick = { showOverflowMenu = true }) {
-		                        Icon(
-		                            imageVector = Icons.Default.MoreVert,
-		                            contentDescription = "更多"
-		                        )
+		                        Icon(Icons.Default.MoreVert, contentDescription = "更多")
 		                    }
 		                    DropdownMenu(
 		                        expanded = showOverflowMenu,
@@ -226,9 +210,9 @@ fun DebugLogScreen(
 		                    }
 		                }
 		            }
-		        }
+		        )
 		
-		        // 搜索框（可展开/收起）
+		        // 搜索框
 		        AnimatedVisibility(
 		            visible = showSearch,
 		            enter = fadeIn(),
@@ -247,10 +231,7 @@ fun DebugLogScreen(
 		                trailingIcon = {
 		                    if (!searchQuery.isNullOrBlank()) {
 		                        IconButton(onClick = { viewModel.setSearchQuery(null) }) {
-		                            Icon(
-		                                imageVector = Icons.Default.Clear,
-		                                contentDescription = "清除"
-		                            )
+		                            Icon(Icons.Default.Clear, contentDescription = "清除")
 		                        }
 		                    }
 		                },
