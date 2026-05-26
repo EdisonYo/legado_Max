@@ -204,7 +204,7 @@ fun DebugLogScreen(
                             }
                             DropdownMenu(
                                 expanded = showOverflowMenu,
-                                containerColor = pageCardElevatedContainerColor()
+                                containerColor = pageCardElevatedContainerColor(),
                                 onDismissRequest = { showOverflowMenu = false }
                             ) {
                                 DropdownMenuItem(
