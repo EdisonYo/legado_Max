@@ -181,6 +181,7 @@ class AllBookmarkActivity : VMBaseActivity<ActivityAllBookmarkBinding, AllBookma
                 item.setIcon(R.drawable.ic_expand_more)
                 item.setTitle(R.string.collapse_all)
             }
+            item.icon?.setTint(primaryTextColor)
         }
     }
 
