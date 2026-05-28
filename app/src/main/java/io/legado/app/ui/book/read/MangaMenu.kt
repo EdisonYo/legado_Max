@@ -119,6 +119,24 @@ class MangaMenu @JvmOverloads constructor(
             bottomMenu.setBackgroundResource(R.drawable.bg_eink_border_top)
         } else {
             bottomMenu.setBackgroundColor(bgColor)
+			val typedValue = android.util.TypedValue()
+			binding.titleBar.context.theme.resolveAttribute(
+			    android.R.attr.textColorPrimary,
+			    typedValue,
+			    true
+			)
+			val titleBarColor = typedValue.data
+			
+			ivCatalog.setColorFilter(titleBarColor)
+			tvCatalog.setTextColor(titleBarColor)
+			ivAutoPage.setColorFilter(titleBarColor)
+			tvAutoPage.setTextColor(titleBarColor)
+			ivBrightness.setColorFilter(titleBarColor)
+			tvBrightness.setTextColor(titleBarColor)
+			ivSetting.setColorFilter(titleBarColor)
+			tvSetting.setTextColor(titleBarColor)
+			tvPre.setTextColor(titleBarColor)
+			tvNext.setTextColor(titleBarColor)
         }
         if (AppConfig.showReadTitleBarAddition) {
             titleBarAddition.visible()
