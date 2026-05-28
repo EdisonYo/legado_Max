@@ -243,7 +243,7 @@ data class ProcessTextAppInfo(
  * 获取能处理 ACTION_PROCESS_TEXT 的应用列表
  */
 @Suppress("DEPRECATION")
-private fun getProcessTextApps(context: Context): List<<ProcessTextAppInfo> {
+private fun getProcessTextApps(context: Context): List<ProcessTextAppInfo> {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
         return emptyList()
     }
