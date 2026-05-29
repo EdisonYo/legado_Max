@@ -12,9 +12,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,13 +21,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.fragment.app.DialogFragment
 import io.legado.app.R
 import io.legado.app.ui.theme.LegadoTheme
-import io.legado.app.ui.theme.pageCardContainerColor
-import io.legado.app.ui.theme.pageTopBarContainerColor
 import io.legado.app.utils.toastOnUi
 
 /**
@@ -38,6 +34,7 @@ import io.legado.app.utils.toastOnUi
  * 
  * 功能说明：
  * 提供一个界面让用户选择要显示/隐藏的文本菜单项
+ * 支持内置菜单项和其它应用文本处理菜单项（Android 6.0+）的集中管理
  */
 class TextMenuConfigDialog : DialogFragment() {
 
@@ -60,6 +57,9 @@ class TextMenuConfigDialog : DialogFragment() {
 
 /**
  * 文本菜单配置对话框内容
+ * 
+ * 采用 Tab 切换内置菜单和其它应用菜单
+ * 所有更改在点击"确定"后统一生效，勾选/取消勾选仅修改内存状态。
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,136 +68,11 @@ fun TextMenuConfigDialogContent(
 ) {
     val context = LocalContext.current
     val menuItems = remember { TextMenuConfig.getAllMenuItems() }
-    var hiddenIds by remember { 
-        mutableStateOf(TextMenuConfig.getHiddenMenuItemIds(context))
-    }
-    var showProcessTextConfig by remember { mutableStateOf(false) }
     
-    val topBarColor = pageTopBarContainerColor()
-    val cardColor = pageCardContainerColor()
-
-    if (showProcessTextConfig) {
-        ProcessTextConfigContent(
-            onDismiss = { showProcessTextConfig = false }
-        )
-    } else {
-        Dialog(
-            onDismissRequest = onDismiss,
-            properties = DialogProperties(
-                dismissOnBackPress = true,
-                dismissOnClickOutside = true
-            )
-        ) {
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .wrapContentHeight(),
-                shape = MaterialTheme.shapes.large,
-                color = cardColor
-            ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    TopAppBar(
-                        title = {
-                            Text(
-                                text = stringResource(R.string.text_menu_config),
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold
-                            )
-                        },
-                        navigationIcon = {
-                            IconButton(onClick = onDismiss) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = "关闭"
-                                )
-                            }
-                        },
-                        actions = {
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                                IconButton(onClick = { showProcessTextConfig = true }) {
-                                    Icon(
-                                        imageVector = Icons.Filled.MoreVert,
-                                        contentDescription = "更多选项"
-                                    )
-                                }
-                            }
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = topBarColor,
-                            titleContentColor = MaterialTheme.colorScheme.onSurface
-                        )
-                    )
-
-                    Text(
-                        text = stringResource(R.string.text_menu_config_desc),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                    )
-
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f, fill = false)
-                    ) {
-                        items(menuItems) { item ->
-                            MenuItemRow(
-                                item = item,
-                                isChecked = item.id !in hiddenIds,
-                                onCheckedChange = { checked ->
-                                    val newHiddenIds = hiddenIds.toMutableSet()
-                                    if (checked) {
-                                        newHiddenIds.remove(item.id)
-                                    } else {
-                                        newHiddenIds.add(item.id)
-                                    }
-                                    TextMenuConfig.setHiddenMenuItemIds(context, newHiddenIds)
-                                    hiddenIds = newHiddenIds
-                                }
-                            )
-                        }
-                    }
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        TextButton(
-                            onClick = {
-                                TextMenuConfig.resetToDefault(context)
-                                hiddenIds = emptySet()
-                                context.toastOnUi("已重置为默认配置")
-                            }
-                        ) {
-                            Text(text = stringResource(R.string.reset_to_default))
-                        }
-
-                        TextButton(onClick = onDismiss) {
-                            Text(text = stringResource(R.string.close))
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-/**
- * 其他应用菜单配置界面
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ProcessTextConfigContent(
-    onDismiss: () -> Unit
-) {
-    val context = LocalContext.current
-    var hiddenItems by remember { 
-        mutableStateOf(TextMenuConfig.getHiddenProcessTextItems(context))
-    }
+    // 内存状态：仅用于界面展示，不实时持久化
+    var hiddenIds by remember { mutableStateOf(TextMenuConfig.getHiddenMenuItemIds(context)) }
+    var hiddenProcessItems by remember { mutableStateOf(TextMenuConfig.getHiddenProcessTextItems(context)) }
+    var selectedTab by remember { mutableStateOf(0) }
     
     val processTextApps = remember {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -207,8 +82,8 @@ fun ProcessTextConfigContent(
         }
     }
     
-    val topBarColor = pageTopBarContainerColor()
-    val cardColor = pageCardContainerColor()
+    // 当系统支持且存在其它应用时才显示 Tab
+    val showTabs = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && processTextApps.isNotEmpty()
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -222,96 +97,120 @@ fun ProcessTextConfigContent(
                 .fillMaxWidth()
                 .wrapContentHeight(),
             shape = MaterialTheme.shapes.large,
-            color = cardColor
+            color = MaterialTheme.colorScheme.surface
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth()
             ) {
+                // 顶部工具栏
                 TopAppBar(
                     title = {
                         Text(
-                            text = stringResource(R.string.process_text_menu_config),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
+                            text = stringResource(R.string.text_menu_config),
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Medium
+                            )
                         )
                     },
-                    navigationIcon = {
-                        IconButton(onClick = onDismiss) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "返回"
-                            )
-                        }
-                    },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = topBarColor,
-                        titleContentColor = MaterialTheme.colorScheme.onSurface
+                        containerColor = MaterialTheme.colorScheme.secondary,
+                        titleContentColor = MaterialTheme.colorScheme.onSecondary,
+                        actionIconContentColor = MaterialTheme.colorScheme.onSecondary
                     )
                 )
 
+                // Tab 切换栏（内置菜单 / 其它应用）
+                if (showTabs) {
+                    TabRow(
+                        selectedTabIndex = selectedTab,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Tab(
+                            selected = selectedTab == 0,
+                            onClick = { selectedTab = 0 },
+                            text = { Text(stringResource(R.string.text_menu_config)) }
+                        )
+                        Tab(
+                            selected = selectedTab == 1,
+                            onClick = { selectedTab = 1 },
+                            text = { Text(stringResource(R.string.process_text_menu_config)) }
+                        )
+                    }
+                }
+
+                // 描述文字根据当前 Tab 切换
                 Text(
-                    text = stringResource(R.string.process_text_menu_config_desc),
+                    text = if (selectedTab == 0) {
+                        stringResource(R.string.text_menu_config_desc)
+                    } else {
+                        stringResource(R.string.process_text_menu_config_desc)
+                    },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
 
-                if (processTextApps.isEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = stringResource(R.string.no_process_text_apps),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                } else {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f, fill = false)
-                    ) {
+                // 菜单项列表
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f, fill = false)
+                ) {
+                    if (selectedTab == 0) {
+                        items(menuItems) { item ->
+                            MenuItemRow(
+                                item = item,
+                                isChecked = item.id !in hiddenIds,
+                                onCheckedChange = { checked ->
+                                    hiddenIds = hiddenIds.toMutableSet().apply {
+                                        if (checked) remove(item.id) else add(item.id)
+                                    }
+                                }
+                            )
+                        }
+                    } else {
                         items(processTextApps) { appInfo ->
                             ProcessTextAppRow(
                                 appInfo = appInfo,
-                                isChecked = appInfo.key !in hiddenItems,
+                                isChecked = appInfo.key !in hiddenProcessItems,
                                 onCheckedChange = { checked ->
-                                    val newHiddenItems = hiddenItems.toMutableSet()
-                                    if (checked) {
-                                        newHiddenItems.remove(appInfo.key)
-                                    } else {
-                                        newHiddenItems.add(appInfo.key)
+                                    hiddenProcessItems = hiddenProcessItems.toMutableSet().apply {
+                                        if (checked) remove(appInfo.key) else add(appInfo.key)
                                     }
-                                    TextMenuConfig.setHiddenProcessTextItems(context, newHiddenItems)
-                                    hiddenItems = newHiddenItems
                                 }
                             )
                         }
                     }
                 }
 
+                // 底部操作栏
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
+                    // 恢复默认：仅重置内存状态，不立即持久化
                     TextButton(
                         onClick = {
-                            TextMenuConfig.resetProcessTextConfig(context)
-                            hiddenItems = emptySet()
-                            context.toastOnUi("已重置为默认配置")
+                            hiddenIds = emptySet()
+                            hiddenProcessItems = emptySet()
                         }
                     ) {
                         Text(text = stringResource(R.string.reset_to_default))
                     }
 
-                    TextButton(onClick = onDismiss) {
-                        Text(text = stringResource(R.string.close))
+                    // 确定：统一持久化所有更改并关闭对话框
+                    TextButton(
+                        onClick = {
+                            TextMenuConfig.setHiddenMenuItemIds(context, hiddenIds)
+                            TextMenuConfig.setHiddenProcessTextItems(context, hiddenProcessItems)
+                            context.toastOnUi("已保存")
+                            onDismiss()
+                        }
+                    ) {
+                        Text(text = stringResource(R.string.dialog_confirm))
                     }
                 }
             }
@@ -320,7 +219,7 @@ fun ProcessTextConfigContent(
 }
 
 /**
- * 其他应用信息
+ * 其它应用信息
  */
 data class ProcessTextAppInfo(
     val key: String,
@@ -360,7 +259,7 @@ private fun getProcessTextApps(context: Context): List<ProcessTextAppInfo> {
 }
 
 /**
- * 菜单项行
+ * 菜单项
  */
 @Composable
 fun MenuItemRow(
@@ -400,7 +299,7 @@ fun MenuItemRow(
 }
 
 /**
- * 其他应用菜单项行
+ * 其他应用菜单项
  */
 @Composable
 fun ProcessTextAppRow(
