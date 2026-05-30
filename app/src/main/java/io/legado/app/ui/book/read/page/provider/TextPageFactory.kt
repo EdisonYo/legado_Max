@@ -25,7 +25,6 @@ class TextPageFactory(dataSource: DataSource) : PageFactory<TextPage>(dataSource
         if (pageIndex >= 0 && pageIndex < chapter.pageSize - 1) {
             return@with true
         }
-        // 即使当前章节懒加载未完成，也允许跳转到下一章
         hasNextChapter()
     }
 
