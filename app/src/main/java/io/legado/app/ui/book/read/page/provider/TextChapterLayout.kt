@@ -152,6 +152,10 @@ class TextChapterLayout(
 
     var channel = Channel<TextPage>(Channel.UNLIMITED)
 
+    /** 开放尾页：懒加载未完成时，最后一页保持可追加状态，供读取端实时访问 */
+    internal val tailPage: TextPage?
+        get() = pendingTextPage.takeIf { it.lines.isNotEmpty() }
+
 
     init {
         job = Coroutine.async(
@@ -182,7 +186,7 @@ class TextChapterLayout(
 
     fun appendContent(newContents: List<String>) {
         if (newContents.isEmpty()) return
-        
+
         kotlinx.coroutines.GlobalScope.launch(IO) {
             try {
                 AppLog.put("懒加载排版: 开始追加内容，共${newContents.size}段")
@@ -195,30 +199,33 @@ class TextChapterLayout(
             }
         }
     }
-    
+
     private suspend fun appendContentInternal(newContents: List<String>) {
         val imageStyle = book.getImageStyle()
         val isTextImageStyle = imageStyle.equals(Book.imgStyleText, true)
-        
-        if (pendingTextPage.lines.isNotEmpty()) {
-            AppLog.put("懒加载排版: pendingTextPage 已有内容(${pendingTextPage.lines.size}行)，创建新页面")
-            val textPage = pendingTextPage
-            if (textPage.height < durY) {
-                textPage.height = durY
-            }
-            textPage.text = stringBuilder.toString()
-            onPageCompleted()
-            pendingTextPage = TextPage()
-            stringBuilder.clear()
-            durY = 0f
-            absStartX = paddingLeft
-        }
-        
+        val isSingleImageStyle = imageStyle.equals(Book.imgStyleSingle, true)
+
         val sb = StringBuffer()
         var isSetTypedImage = false
         var wordCount = 0
-        
-        for (content in newContents) {
+
+        // 防御性段落拆分：将可能包含多段的文本块拆成独立段落，
+        // 确保每个段落独立调用 setTypeText，从而正确施加 paragraphSpacing 和首行缩进
+        val paragraphs = arrayListOf<String>()
+        for (rawContent in newContents) {
+            when {
+                adaptSpecialStyle && rawContent.trim() == "[newpage]" -> paragraphs.add(rawContent)
+                adaptSpecialStyle && rawContent.trim().startsWith("<usehtml>") -> paragraphs.add(rawContent)
+                else -> {
+                    rawContent.split("\n")
+                        .map { it.trimEnd() }
+                        .filter { it.isNotEmpty() }
+                        .forEach { paragraphs.add(it) }
+                }
+            }
+        }
+
+        for (content in paragraphs) {
             currentCoroutineContext().ensureActive()
             if (adaptSpecialStyle) {
                 val text = content.trim()
@@ -258,7 +265,7 @@ class TextChapterLayout(
                     clickList = null
                 )
             } else {
-                if (isSetTypedImage) {
+                if (isSingleImageStyle && isSetTypedImage) {
                     isSetTypedImage = false
                     prepareNextPageIfNeed()
                 }
@@ -359,7 +366,7 @@ class TextChapterLayout(
                     }
                 }
                 if (start < content.length) {
-                    if (isSetTypedImage) {
+                    if (isSingleImageStyle && isSetTypedImage) {
                         isSetTypedImage = false
                         prepareNextPageIfNeed()
                     }
@@ -385,23 +392,37 @@ class TextChapterLayout(
             pendingTextPage.lines.lastOrNull()?.isParagraphEnd = true
             stringBuilder.append("\n")
         }
-        
-        val textPage = pendingTextPage
-        val endPadding = 20.dpToPx()
-        val durYPadding = durY + endPadding
-        if (textPage.height < durYPadding) {
-            textPage.height = durYPadding
-        } else {
-            textPage.height += endPadding
+
+        // 追加结束后更新开放尾页状态，不强制归档，保持与读取端同步
+        if (pendingTextPage.lines.isNotEmpty()) {
+            if (pendingTextPage.height < durY) {
+                pendingTextPage.height = durY
+            }
+            pendingTextPage.text = stringBuilder.toString()
         }
-        textPage.text = stringBuilder.toString()
-        currentCoroutineContext().ensureActive()
-        onPageCompleted()
-        
-        pendingTextPage = TextPage()
-        stringBuilder.clear()
-        durY = 0f
-        absStartX = paddingLeft
+    }
+
+    /**
+     * 懒加载全部完成后，归档开放尾页并关闭布局通道
+     */
+    fun finalizeLazyLayout() {
+        if (pendingTextPage.lines.isNotEmpty()) {
+            val textPage = pendingTextPage
+            val endPadding = 20.dpToPx()
+            val durYPadding = durY + endPadding
+            if (textPage.height < durYPadding) {
+                textPage.height = durYPadding
+            } else {
+                textPage.height += endPadding
+            }
+            textPage.text = stringBuilder.toString()
+            onPageCompleted()
+            pendingTextPage = TextPage()
+            stringBuilder.clear()
+            durY = 0f
+            absStartX = paddingLeft
+        }
+        onCompleted()
     }
 
     private fun onPageCompleted() {
@@ -747,22 +768,32 @@ class TextChapterLayout(
         val chapterWordCount = StringUtils.wordCountFormat(wordCount.toString())
         bookChapter.wordCount = chapterWordCount
         appDb.bookChapterDao.upWordCount(bookChapter.bookUrl, bookChapter.url, chapterWordCount)
-        val textPage = pendingTextPage
-        val endPadding = 20.dpToPx()
-        val durYPadding = durY + endPadding
-        if (textPage.height < durYPadding) {
-            textPage.height = durYPadding
+
+        if (textChapter.useLazyLoading && !textChapter.isFullyLoaded()) {
+            // 懒加载未完成：保持尾页开放，等待后续追加内容无缝填入
+            pendingTextPage.text = stringBuilder.toString()
+            if (pendingTextPage.height < durY) {
+                pendingTextPage.height = durY
+            }
+            // 不关闭 channel，不调用 onCompleted，保留 listener 等待追加完成
         } else {
-            textPage.height += endPadding
+            val textPage = pendingTextPage
+            val endPadding = 20.dpToPx()
+            val durYPadding = durY + endPadding
+            if (textPage.height < durYPadding) {
+                textPage.height = durYPadding
+            } else {
+                textPage.height += endPadding
+            }
+            textPage.text = stringBuilder.toString()
+            currentCoroutineContext().ensureActive()
+            onPageCompleted()
+            pendingTextPage = TextPage()
+            stringBuilder.clear()
+            durY = 0f
+            absStartX = paddingLeft
+            onCompleted()
         }
-        textPage.text = stringBuilder.toString()
-        currentCoroutineContext().ensureActive()
-        onPageCompleted()
-        pendingTextPage = TextPage()
-        stringBuilder.clear()
-        durY = 0f
-        absStartX = paddingLeft
-        onCompleted()
     }
 
     /**
@@ -932,6 +963,9 @@ class TextChapterLayout(
                 val highlightStyle = extractHighlightStyle(spanned, charIndex)
                 val underlineMode = highlightStyle?.underlineMode ?: 0
                 val underlineColor = highlightStyle?.underlineColor
+                val underlineWidth = highlightStyle?.underlineWidth ?: 1f
+                val underlineOffset = highlightStyle?.underlineOffset ?: 2f
+                val underlineSvgPath = highlightStyle?.underlineSvgPath ?: ""
                 val bgImage = highlightStyle?.bgImage ?: ""
                 val bgImageFit = highlightStyle?.bgImageFit ?: 0
                 val bgImageScale = highlightStyle?.bgImageScale ?: 1f
