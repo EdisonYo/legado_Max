@@ -144,6 +144,7 @@ class TextChapterLayout(
     private var absStartX = paddingLeft
     private var floatArray = FloatArray(128)
     private val appendMutex = Mutex()
+    private val pendingLazyContents = ArrayList<String>()
 
     private var isCompleted = false
     private val job: Coroutine<*>
@@ -185,8 +186,13 @@ class TextChapterLayout(
         
         kotlinx.coroutines.GlobalScope.launch(IO) {
             try {
-                AppLog.put("懒加载排版: 开始追加内容，共${newContents.size}段")
+                AppLog.put("懒加载排版: 请求追加内容，共${newContents.size}段，排版完成状态=${isCompleted}")
                 appendMutex.withLock {
+                    if (!isCompleted) {
+                        AppLog.put("懒加载排版: 初始排版未完成，内容入队等待")
+                        pendingLazyContents.addAll(newContents)
+                        return@withLock
+                    }
                     appendContentInternal(newContents)
                 }
                 AppLog.put("懒加载排版: 追加内容完成")
@@ -200,19 +206,7 @@ class TextChapterLayout(
         val imageStyle = book.getImageStyle()
         val isTextImageStyle = imageStyle.equals(Book.imgStyleText, true)
         
-        if (pendingTextPage.lines.isNotEmpty()) {
-            AppLog.put("懒加载排版: pendingTextPage 已有内容(${pendingTextPage.lines.size}行)，创建新页面")
-            val textPage = pendingTextPage
-            if (textPage.height < durY) {
-                textPage.height = durY
-            }
-            textPage.text = stringBuilder.toString()
-            onPageCompleted()
-            pendingTextPage = TextPage()
-            stringBuilder.clear()
-            durY = 0f
-            absStartX = paddingLeft
-        }
+        // 移除强制完成 pendingTextPage 的逻辑，让新内容续排当前未排满的页面
         
         val sb = StringBuffer()
         var isSetTypedImage = false
@@ -435,6 +429,23 @@ class TextChapterLayout(
             AppLog.put("调用布局进度监听回调出错\n${e.localizedMessage}", e)
         } finally {
             listener = null
+        
+        // 初始排版完成后，处理排队等待的懒加载内容
+        if (pendingLazyContents.isNotEmpty()) {
+            kotlinx.coroutines.GlobalScope.launch(IO) {
+                try {
+                    appendMutex.withLock {
+                        if (pendingLazyContents.isNotEmpty()) {
+                            AppLog.put("懒加载排版: 初始排版完成，处理排队内容${pendingLazyContents.size}段")
+                            appendContentInternal(pendingLazyContents)
+                            pendingLazyContents.clear()
+                        }
+                    }
+                } catch (e: Exception) {
+                    AppLog.put("处理排队懒加载内容失败: ${e.localizedMessage}", e)
+                }
+            }
+        }
         }
     }
 
