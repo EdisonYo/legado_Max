@@ -36,7 +36,7 @@ data class TextChapter(
     private var lastLazyPrefetchReadPosition = -1f
 
     private var layout: TextChapterLayout? = null
-    
+
     var lazyContent: LazyContentManager? = null
     var useLazyLoading: Boolean = false
 
@@ -69,20 +69,28 @@ data class TextChapter(
     }
 
     fun getPage(index: Int): TextPage? {
-        return pages.getOrNull(index)
+        return if (index in pages.indices) {
+            pages[index]
+        } else if (index == pages.size) {
+            // 懒加载未完成时，开放尾页可供实时读取
+            layout?.tailPage?.takeIf { it.lines.isNotEmpty() }
+        } else {
+            null
+        }
     }
 
     fun getPageByReadPos(readPos: Int): TextPage? {
         return getPage(getPageIndexByCharIndex(readPos))
     }
 
-    val lastPage: TextPage? get() = pages.lastOrNull()
+    val lastPage: TextPage? get() = pages.lastOrNull() ?: layout?.tailPage?.takeIf { it.lines.isNotEmpty() }
 
-    val lastIndex: Int get() = pages.lastIndex
+    val lastIndex: Int get() = pages.lastIndex + if (layout?.tailPage?.lines?.isNotEmpty() == true) 1 else 0
 
     val lastReadLength: Int get() = getReadLength(lastIndex)
 
-    val pageSize: Int get() = pages.size
+    val pageSize: Int
+        get() = pages.size + if (layout?.tailPage?.lines?.isNotEmpty() == true) 1 else 0
 
     var listener: LayoutProgressListener? = null
 
@@ -130,11 +138,11 @@ data class TextChapter(
      * @return 是否是最后一页
      */
     fun isLastIndex(index: Int): Boolean {
-        return isFullyLoaded() && index >= pages.size - 1
+        return isFullyLoaded() && index >= pageSize - 1
     }
 
     fun isLastIndexCurrent(index: Int): Boolean {
-        return index >= pages.size - 1
+        return index >= pageSize - 1
     }
 
     /**
@@ -143,7 +151,7 @@ data class TextChapter(
      */
     fun getReadLength(pageIndex: Int): Int {
         if (pageIndex < 0 || pages.isEmpty()) return 0
-        return pages[min(pageIndex, lastIndex)].chapterPosition
+        return pages[min(pageIndex, pages.lastIndex)].chapterPosition
         /*
         var length = 0
         val maxIndex = min(pageIndex, pages.size)
@@ -255,16 +263,16 @@ data class TextChapter(
      * @return 根据索引位置获取所在页
      */
     fun getPageIndexByCharIndex(charIndex: Int): Int {
-        val pageSize = pages.size
+        val pageSize = pageSize
         if (pageSize == 0) {
             return -1
         }
-        val bIndex = pages.fastBinarySearchBy(charIndex, 0, pageSize) {
+        val bIndex = pages.fastBinarySearchBy(charIndex, 0, pages.size) {
             it.chapterPosition
         }
         val index = abs(bIndex + 1) - 1
         // 判断是否已经排版到 charIndex ，没有则返回 -1
-        if (!isCompleted && index == pageSize - 1) {
+        if (!isCompleted && index == pages.size - 1) {
             val page = pages[index]
             val pageEndPos = page.chapterPosition + page.charSize
             if (charIndex > pageEndPos) {
@@ -338,6 +346,13 @@ data class TextChapter(
     fun cancelLayout() {
         layout?.cancel()
         listener = null
+    }
+
+    /**
+     * 懒加载全部完成后，通知排版器归档开放尾页
+     */
+    fun finalizeLazyLayout() {
+        layout?.finalizeLazyLayout()
     }
 
     companion object {

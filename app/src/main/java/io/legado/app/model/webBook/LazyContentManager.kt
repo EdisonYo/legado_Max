@@ -33,6 +33,8 @@ data class PageContent(
 interface LazyContentCallback {
     fun onPageLoading(pageIndex: Int) {}
     fun onPageLoaded(pageIndex: Int, content: String)
+    /** 懒加载全部完成时回调 */
+    fun onAllPagesLoaded() {}
 }
 
 class LazyContentManager(
@@ -51,38 +53,38 @@ class LazyContentManager(
 ) {
     val pages = ConcurrentHashMap<Int, PageContent>()
     private val loadingPages = ConcurrentHashMap<Int, AtomicBoolean>()
-    
+
     val totalPages: AtomicInteger = AtomicInteger(-1)
-    
+
     private var prefetchJob: Job? = null
-    
+
     val contentChannel = Channel<PageContent>(Channel.UNLIMITED)
-    
+
     val isCompleted: AtomicBoolean = AtomicBoolean(false)
-    
+
     private val lock = Any()
-    
+
     fun getPage(index: Int): PageContent? {
         return pages[index]
     }
-    
+
     fun isPageLoaded(index: Int): Boolean {
         return pages.containsKey(index)
     }
-    
+
     fun isPageLoading(index: Int): Boolean {
         return loadingPages[index]?.get() == true
     }
-    
+
     fun isAnyPageLoading(): Boolean {
         return loadingPages.values.any { it.get() }
     }
-    
+
     fun getAllLoadedContent(): String {
         val sortedPages = pages.keys.sorted()
         return sortedPages.mapNotNull { pages[it]?.content }.joinToString("\n")
     }
-    
+
     fun getNextPageToLoad(): Int {
         synchronized(lock) {
             if (isCompleted.get()) return -1
@@ -92,25 +94,25 @@ class LazyContentManager(
             return nextIdx
         }
     }
-    
+
     suspend fun loadInitialPage(): PageContent {
         val analyzeRule = AnalyzeRule(book, bookSource)
         analyzeRule.setContent(initialBody, baseUrl)
         analyzeRule.setRedirectUrl(redirectUrl)
         analyzeRule.setToastRuleType("CONTENT")
-        
+
         val content = analyzeRule.getString(contentRule, unescape = false)
         val nextUrl = if (nextContentUrlRule.isNotBlank()) {
             analyzeRule.getStringList(nextContentUrlRule, isUrl = true)?.firstOrNull()
         } else null
-        
+
         val pageContent = PageContent(content, nextUrl)
         pages[0] = pageContent
         contentChannel.trySend(pageContent)
-        
+
         return pageContent
     }
-    
+
     fun prefetchNextPage(): Boolean {
         val nextIdx: Int
         synchronized(lock) {
@@ -118,36 +120,34 @@ class LazyContentManager(
             if (nextIdx < 0) return false
             loadingPages[nextIdx] = AtomicBoolean(true)
         }
-        
+
         AppLog.put("懒加载: 开始预加载第${nextIdx + 1}页")
         callback?.onPageLoading(nextIdx)
-        
+
         prefetchJob?.cancel()
         prefetchJob = kotlinx.coroutines.GlobalScope.launch(Dispatchers.IO) {
             try {
                 val currentIdx = nextIdx - 1
                 val currentPage = pages[currentIdx] ?: return@launch
                 val nextUrl = currentPage.nextUrl
-                
+
                 if (nextUrl.isNullOrBlank()) {
                     AppLog.put("懒加载: 无下一页URL，标记完成")
-                    isCompleted.set(true)
-                    totalPages.set(currentIdx + 1)
+                    markCompleted()
                     return@launch
                 }
-                
+
                 if (!nextChapterUrl.isNullOrEmpty() &&
                     NetworkUtils.getAbsoluteURL(redirectUrl, nextUrl) ==
                     NetworkUtils.getAbsoluteURL(redirectUrl, nextChapterUrl)
                 ) {
                     AppLog.put("懒加载: 下一页URL等于下一章URL，标记完成")
-                    isCompleted.set(true)
-                    totalPages.set(currentIdx + 1)
+                    markCompleted()
                     return@launch
                 }
-                
+
                 ensureActive()
-                
+
                 AppLog.put("懒加载: 请求第${nextIdx + 1}页 URL: $nextUrl")
                 val analyzeUrl = AnalyzeUrl(
                     mUrl = nextUrl,
@@ -156,15 +156,15 @@ class LazyContentManager(
                     coroutineContext = kotlin.coroutines.coroutineContext
                 )
                 val res = analyzeUrl.getStrResponseAwait(jsStr = webJs)
-                
+
                 res.body?.let { body ->
                     val analyzeRule = AnalyzeRule(book, bookSource)
                     analyzeRule.setContent(body, nextUrl)
                     val rUrl = analyzeRule.setRedirectUrl(res.url)
                     analyzeRule.setToastRuleType("CONTENT")
-                    
+
                     var content = analyzeRule.getString(contentRule, unescape = false)
-                    
+
                     if (!book.isAudio && !book.isVideo) {
                         val useHtmlMap = mutableMapOf<String, String>()
                         if (AppConfig.adaptSpecialStyle) {
@@ -182,18 +182,24 @@ class LazyContentManager(
                             content = content.replace(placeholder, originalContent)
                         }
                     }
-                    
+
                     val nextNextUrl = if (nextContentUrlRule.isNotBlank()) {
                         analyzeRule.getStringList(nextContentUrlRule, isUrl = true)?.firstOrNull()
                     } else null
-                    
+
                     val pageContent = PageContent(content, nextNextUrl)
                     pages[nextIdx] = pageContent
                     contentChannel.trySend(pageContent)
-                    
+
                     AppLog.put("懒加载: 第${nextIdx + 1}页加载成功，内容长度=${content.length}")
-                    
+
                     callback?.onPageLoaded(nextIdx, content)
+
+                    // 如果 nextNextUrl 为空，说明这是最后一页
+                    if (nextNextUrl.isNullOrBlank()) {
+                        AppLog.put("懒加载: 第${nextIdx + 1}页无后续URL，标记完成")
+                        markCompleted()
+                    }
                 }
             } catch (e: Exception) {
                 AppLog.put("懒加载: 预加载失败: ${e.localizedMessage}", e)
@@ -203,46 +209,44 @@ class LazyContentManager(
         }
         return true
     }
-    
+
     suspend fun loadPage(index: Int): PageContent? {
         if (index < 0) return null
-        
+
         pages[index]?.let { return it }
-        
+
         while (isPageLoading(index)) {
             kotlinx.coroutines.delay(50)
         }
-        
+
         pages[index]?.let { return it }
-        
+
         if (index == 0) {
             return loadInitialPage()
         }
-        
+
         loadingPages[index] = AtomicBoolean(true)
-        
+
         return try {
             var prevPage = pages[index - 1]
             if (prevPage == null) {
                 prevPage = loadPage(index - 1) ?: return null
             }
-            
+
             val nextUrl = prevPage.nextUrl
             if (nextUrl.isNullOrBlank()) {
-                isCompleted.set(true)
-                totalPages.set(index)
+                markCompleted()
                 return null
             }
-            
+
             if (!nextChapterUrl.isNullOrEmpty() &&
                 NetworkUtils.getAbsoluteURL(redirectUrl, nextUrl) ==
                 NetworkUtils.getAbsoluteURL(redirectUrl, nextChapterUrl)
             ) {
-                isCompleted.set(true)
-                totalPages.set(index)
+                markCompleted()
                 return null
             }
-            
+
             val analyzeUrl = AnalyzeUrl(
                 mUrl = nextUrl,
                 source = bookSource,
@@ -250,21 +254,28 @@ class LazyContentManager(
                 coroutineContext = kotlin.coroutines.coroutineContext
             )
             val res = analyzeUrl.getStrResponseAwait(jsStr = webJs)
-            
+
             res.body?.let { body ->
                 val analyzeRule = AnalyzeRule(book, bookSource)
                 analyzeRule.setContent(body, nextUrl)
                 analyzeRule.setRedirectUrl(res.url)
                 analyzeRule.setToastRuleType("CONTENT")
-                
+
                 val content = analyzeRule.getString(contentRule, unescape = false)
                 val nextNextUrl = if (nextContentUrlRule.isNotBlank()) {
                     analyzeRule.getStringList(nextContentUrlRule, isUrl = true)?.firstOrNull()
                 } else null
-                
+
                 val pageContent = PageContent(content, nextNextUrl)
                 pages[index] = pageContent
                 contentChannel.trySend(pageContent)
+
+                callback?.onPageLoaded(index, content)
+
+                if (nextNextUrl.isNullOrBlank()) {
+                    markCompleted()
+                }
+
                 pageContent
             }
         } catch (e: Exception) {
@@ -274,12 +285,21 @@ class LazyContentManager(
             loadingPages[index]?.set(false)
         }
     }
-    
+
+    private fun markCompleted() {
+        if (!isCompleted.getAndSet(true)) {
+            totalPages.set(pages.size)
+            contentChannel.close()
+            callback?.onAllPagesLoaded()
+            AppLog.put("懒加载: 全部完成，共${pages.size}页")
+        }
+    }
+
     fun cancel() {
         prefetchJob?.cancel()
         contentChannel.close()
     }
-    
+
     fun hasMorePages(): Boolean {
         if (isCompleted.get()) return false
         val maxLoadedIndex = if (pages.isEmpty()) -1 else pages.keys.max()
