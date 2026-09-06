@@ -755,6 +755,12 @@ appCtx.putPrefBoolean(PreferKey.showBookshelfTagBar, value)
             appCtx.putPrefBoolean(PreferKey.bookInfoShowAuthorOtherWorks, value)
         }
 
+    var bookInfoShowBookTag: Boolean
+        get() = appCtx.getPrefBoolean(PreferKey.bookInfoShowBookTag, true)
+        set(value) {
+            appCtx.putPrefBoolean(PreferKey.bookInfoShowBookTag, value)
+        }
+
     val autoChangeSource: Boolean
         get() = appCtx.getPrefBoolean(PreferKey.autoChangeSource, true)
 

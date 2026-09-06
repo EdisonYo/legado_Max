@@ -94,6 +94,12 @@
                 android:title="@string/show_author_other_works_in_book_info"
                 android:checkable="true"
                 app:showAsAction="never" />
+
+            <item
+                android:id="@+id/menu_show_book_tag"
+                android:title="@string/show_book_tag_in_book_info"
+                android:checkable="true"
+                app:showAsAction="never" />
         </menu>
     </item>
 

@@ -281,6 +281,7 @@ object PreferKey {
     const val readRecordDisplayMode = "readRecordDisplayMode"
     const val bookInfoShowReadRecord = "bookInfoShowReadRecord"
     const val bookInfoShowAuthorOtherWorks = "bookInfoShowAuthorOtherWorks"
+    const val bookInfoShowBookTag = "bookInfoShowBookTag"
     const val highlightRuleDialog = "highlightRuleDialog"
     const val highlightRuleBookTitle = "highlightRuleBookTitle"
     const val highlightRuleBracketNote = "highlightRuleBracketNote"

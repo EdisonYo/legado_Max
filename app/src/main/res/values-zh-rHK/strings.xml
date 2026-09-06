@@ -630,6 +630,8 @@
     <string name="add_replace_rule">新建替換</string>
     <string name="group">分組</string>
     <string name="group_s">分組: %s</string>
+    <string name="book_tag_s">標籤: %s</string>
+    <string name="book_tag_existing">已有標籤</string>
     <string name="toc_s">目錄: %s</string>
     <string name="enable_explore">啟用發現</string>
     <string name="disable_explore">禁用發現</string>
@@ -729,6 +731,7 @@
     <string name="save_image">保存圖片</string>
     <string name="no_default_path">沒有默認路徑</string>
     <string name="change_group">設置分組</string>
+    <string name="set_book_tag">設置標籤</string>
     <string name="view_toc">查看目錄</string>
     <string name="bar_elevation">導航欄陰影</string>
     <string name="bar_elevation_s">當前陰影大小 (elevation): %s</string>
@@ -1380,6 +1383,7 @@
     <string name="book_author_other_works_error">搜尋失敗: %1$s</string>
     <string name="immersion_nav_bar">沉浸式操作欄</string>
     <string name="show_author_other_works_in_book_info">顯示作者其他作品</string>
+    <string name="show_book_tag_in_book_info">顯示設置標籤</string>
     <string name="key_page_anim_speed_title">按鍵翻頁動畫速度</string>
     <string name="manga_disable_page_anim">停用漫畫翻頁動畫</string>
     <string name="manga_hide_footer_info">隱藏漫畫頁腳資訊</string>

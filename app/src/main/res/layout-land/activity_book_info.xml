@@ -252,6 +252,46 @@
                         </LinearLayout>
 
                         <LinearLayout
+                            android:id="@+id/ll_book_tag"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:paddingVertical="6dp">
+
+                            <ImageView
+                                android:layout_width="20sp"
+                                android:layout_height="20sp"
+                                android:contentDescription="@string/set_book_tag"
+                                android:src="@drawable/ic_label"
+                                app:tint="@color/tv_text_summary" />
+
+                            <TextView
+                                android:id="@+id/tv_tag"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:ellipsize="end"
+                                android:includeFontPadding="false"
+                                android:paddingStart="8dp"
+                                android:singleLine="true"
+                                android:textColor="@color/tv_text_summary"
+                                android:textSize="14sp"
+                                tools:ignore="RtlSymmetry"
+                                tools:text="@string/book_tag_s" />
+
+                            <io.legado.app.ui.widget.text.AccentBgTextView
+                                android:id="@+id/tv_set_tag"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="8dp"
+                                android:paddingHorizontal="6dp"
+                                android:text="@string/set_book_tag"
+                                android:textSize="13sp"
+                                app:radius="2dp" />
+                        </LinearLayout>
+
+                        <LinearLayout
                             android:id="@+id/ll_toc"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"

@@ -677,6 +677,8 @@
     <string name="add_replace_rule">New replacement</string>
     <string name="group">Group</string>
     <string name="group_s">Group: %s</string>
+    <string name="book_tag_s">Tags: %s</string>
+    <string name="book_tag_existing">Existing tags</string>
     <string name="toc_s">Chapters: %s</string>
     <string name="enable_explore">Enable Discovery</string>
     <string name="disable_explore">Disable Discovery</string>
@@ -890,6 +892,7 @@
     <string name="save_image">Save image</string>
     <string name="no_default_path">No default path</string>
     <string name="change_group">Group settings</string>
+    <string name="set_book_tag">Set Tags</string>
     <string name="view_toc">View Chapters</string>
     <string name="bar_elevation">Navigation bar shadow</string>
     <string name="bar_elevation_s">Current shadow size(elevation): %s</string>
@@ -1651,6 +1654,7 @@
     <string name="more_settings">More Settings</string>
     <string name="show_read_record_in_book_info">Show Read Record</string>
     <string name="show_author_other_works_in_book_info">Show Author\'s Other Works</string>
+    <string name="show_book_tag_in_book_info">Show Tags</string>
     <string name="words">Words</string>
     <string name="app_name_sigma">Legado Max</string>
     <string name="about_description_sigma">\u3000\u3000Legado Max is inherited from Legado Sigma, aiming to improve and add features on the original version. Welcome to join us.</string>

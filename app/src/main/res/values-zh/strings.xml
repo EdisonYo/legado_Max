@@ -676,6 +676,8 @@
     <string name="add_replace_rule">新建替换</string>
     <string name="group">分组</string>
     <string name="group_s">分组：%s</string>
+    <string name="book_tag_s">标签：%s</string>
+    <string name="book_tag_existing">已有标签</string>
     <string name="toc_s">目录：%s</string>
     <string name="enable_explore">启用发现</string>
     <string name="disable_explore">禁用发现</string>
@@ -887,6 +889,7 @@
     <string name="save_image">保存图片</string>
     <string name="no_default_path">没有默认路径</string>
     <string name="change_group">设置分组</string>
+    <string name="set_book_tag">设置标签</string>
     <string name="view_toc">查看目录</string>
     <string name="bar_elevation">导航栏阴影</string>
     <string name="bar_elevation_s">当前阴影大小（elevation）：%s</string>
@@ -1525,6 +1528,7 @@
     <string name="more_settings">更多设置</string>
     <string name="show_read_record_in_book_info">显示阅读记录</string>
     <string name="show_author_other_works_in_book_info">显示作者其他作品</string>
+    <string name="show_book_tag_in_book_info">显示设置标签</string>
     <string name="words">字数</string>
     <string name="app_name_sigma">阅读Max</string>
     <string name="about_description_sigma">\u3000\u3000阅读Max继承自阅读Sigma，旨在改进和增加原版功能，欢迎您的加入。</string>

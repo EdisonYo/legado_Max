@@ -53,6 +53,7 @@ import io.legado.app.help.book.isLocalTxt
 import io.legado.app.help.book.isVideo
 import io.legado.app.help.book.isWebFile
 import io.legado.app.help.book.removeType
+import io.legado.app.help.book.BookTagHelper
 import io.legado.app.help.config.AppConfig
 import io.legado.app.help.config.LocalConfig
 import io.legado.app.help.webView.PooledWebView
@@ -112,6 +113,7 @@ import io.legado.app.utils.longToastOnUi
 import io.legado.app.utils.observeEvent
 import io.legado.app.utils.openFileUri
 import io.legado.app.utils.openUrl
+import io.legado.app.utils.postEvent
 import io.legado.app.utils.sendToClip
 import io.legado.app.utils.setHtml
 import io.legado.app.utils.setMarkdown
@@ -147,6 +149,7 @@ class BookInfoActivity :
     ChangeBookSourceDialog.CallBack,
     ChangeCoverDialog.CallBack,
     VariableDialog.Callback,
+    BookTagSelectDialog.Callback,
     SearchAdapter.CallBack {
 
     companion object {
@@ -384,6 +387,8 @@ class BookInfoActivity :
             AppConfig.bookInfoShowReadRecord
         menu.findItem(R.id.menu_show_author_other_works)?.isChecked =
             AppConfig.bookInfoShowAuthorOtherWorks
+        menu.findItem(R.id.menu_show_book_tag)?.isChecked =
+            AppConfig.bookInfoShowBookTag
         return super.onMenuOpened(featureId, menu)
     }
 
@@ -518,6 +523,10 @@ class BookInfoActivity :
                 AppConfig.bookInfoShowAuthorOtherWorks = !item.isChecked
                 viewModel.getBook()?.let { upAuthorOtherWorksVisibility(it) }
             }
+            R.id.menu_show_book_tag -> {
+                AppConfig.bookInfoShowBookTag = !item.isChecked
+                viewModel.getBook()?.let { upTag(it) }
+            }
             R.id.menu_upload -> {
                 viewModel.getBook()?.let { book ->
                     book.getRemoteUrl()?.let {
@@ -621,6 +630,7 @@ class BookInfoActivity :
         upTvBookshelf()
         upKinds(book)
         upGroup(book.group)
+        upTag(book)
         viewModel.prepareAuthorOtherWorks(book)
         upAuthorOtherWorksVisibility(book)
     }
@@ -901,6 +911,20 @@ class BookInfoActivity :
         }
     }
 
+    private fun upTag(book: Book) {
+        if (!AppConfig.bookInfoShowBookTag) {
+            binding.llBookTag?.gone()
+            return
+        }
+        binding.llBookTag?.visible()
+        val tags = BookTagHelper.parse(book.customTag)
+        if (tags.isEmpty()) {
+            binding.tvTag?.text = getString(R.string.bookshelf_tag_none)
+        } else {
+            binding.tvTag?.text = getString(R.string.book_tag_s, tags.joinToString(", "))
+        }
+    }
+
     private fun initViewEvent() = binding.run {
         ivCover.setOnClickListener {
             viewModel.getBook()?.let {
@@ -984,6 +1008,13 @@ class BookInfoActivity :
             viewModel.getBook()?.let {
                 showDialogFragment(
                     GroupSelectDialog(it.group)
+                )
+            }
+        }
+        tvSetTag?.setOnClickListener {
+            viewModel.getBook()?.let {
+                showDialogFragment(
+                    BookTagSelectDialog(it.customTag)
                 )
             }
         }
@@ -1323,6 +1354,19 @@ class BookInfoActivity :
                 viewModel.addToBookshelf({
                     upTvBookshelf()
                 }, groupId)
+            }
+        }
+    }
+
+    override fun setTags(tags: List<String>) {
+        viewModel.getBook()?.let { book ->
+            book.customTag = BookTagHelper.join(tags)
+            upTag(book)
+            if (viewModel.inBookshelf) {
+                // 刷新事件必须在写库完成后发出，否则书架可能读到旧的 customTag
+                viewModel.saveBook(book) {
+                    postEvent(EventBus.BOOKSHELF_REFRESH, "")
+                }
             }
         }
     }
