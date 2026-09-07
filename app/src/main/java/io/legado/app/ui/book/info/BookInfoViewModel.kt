@@ -23,6 +23,7 @@ import io.legado.app.exception.NoStackTraceException
 import io.legado.app.help.AppWebDav
 import io.legado.app.help.config.AppConfig
 import io.legado.app.help.book.BookHelp
+import io.legado.app.help.book.BookTagManagement
 import io.legado.app.help.book.ContentProcessor
 import io.legado.app.help.book.addType
 import io.legado.app.help.book.getExportFileName
@@ -601,6 +602,32 @@ class BookInfoViewModel(application: Application) : BaseViewModel(application) {
             }
         }.onSuccess {
             success?.invoke()
+        }
+    }
+
+    /**
+     * 将书籍标签注册进所属用户分组的标签配置，与管理标签"添加标签"语义一致：
+     * 标签在 bookshelfGroupTags 中持久化，即使书籍移除标签后仍保留在分组标签列表中。
+     */
+    fun registerBookTags(book: Book, tags: List<String>) {
+        if (tags.isEmpty()) return
+        execute {
+            val bookGroups = appDb.bookGroupDao.all
+                .map { it.groupId }
+                .filter { it > 0 && book.group and it > 0L }
+            if (bookGroups.isEmpty()) return@execute
+            val configMap = AppConfig.bookshelfGroupTags.toMutableMap()
+            var changed = false
+            bookGroups.forEach { groupId ->
+                val merged = BookTagManagement.mergeTags(configMap[groupId].orEmpty(), tags)
+                if (merged != configMap[groupId]) {
+                    configMap[groupId] = merged
+                    changed = true
+                }
+            }
+            if (changed) {
+                AppConfig.bookshelfGroupTags = configMap
+            }
         }
     }
 

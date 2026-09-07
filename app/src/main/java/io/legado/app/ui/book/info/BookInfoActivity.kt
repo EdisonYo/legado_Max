@@ -1366,6 +1366,8 @@ class BookInfoActivity :
             book.customTag = BookTagHelper.join(tags)
             upTag(book)
             if (viewModel.inBookshelf) {
+                // 新增标签同步注册进所属分组的标签配置，与管理标签"添加标签"行为一致
+                viewModel.registerBookTags(book, tags)
                 // 刷新事件必须在写库完成后发出，否则书架可能读到旧的 customTag
                 viewModel.saveBook(book) {
                     postEvent(EventBus.BOOKSHELF_REFRESH, "")
