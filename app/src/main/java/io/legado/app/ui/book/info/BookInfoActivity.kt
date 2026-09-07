@@ -918,11 +918,12 @@ class BookInfoActivity :
         }
         binding.llBookTag?.visible()
         val tags = BookTagHelper.parse(book.customTag)
-        if (tags.isEmpty()) {
-            binding.tvTag?.text = getString(R.string.bookshelf_tag_none)
+        val text = if (tags.isEmpty()) {
+            getString(R.string.bookshelf_tag_none)
         } else {
-            binding.tvTag?.text = getString(R.string.book_tag_s, tags.joinToString(", "))
+            tags.joinToString(", ")
         }
+        binding.tvTag?.text = getString(R.string.book_tag_s, text)
     }
 
     private fun initViewEvent() = binding.run {
