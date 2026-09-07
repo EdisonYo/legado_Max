@@ -53,4 +53,6 @@
     <dimen name="bookshelf_tag_item_padding_horizontal">12dp</dimen>
     <!-- 二级标签胶囊(Chip)样式圆角，与首页排行榜多分类 Tab 一致 -->
     <dimen name="bookshelf_tag_item_corner_radius">8dp</dimen>
+    <!-- 未选中标签描边厚度 -->
+    <dimen name="bookshelf_tag_item_stroke_width">1dp</dimen>
 </resources>
