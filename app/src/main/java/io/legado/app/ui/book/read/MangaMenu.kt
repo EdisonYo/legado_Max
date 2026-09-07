@@ -29,7 +29,6 @@ import io.legado.app.utils.ColorUtils
 import io.legado.app.utils.ConstraintModify
 import io.legado.app.utils.activity
 import io.legado.app.utils.applyNavigationBarPadding
-import io.legado.app.utils.applyTint
 import io.legado.app.utils.dpToPx
 import io.legado.app.utils.gone
 import io.legado.app.utils.invisible
@@ -127,7 +126,6 @@ class MangaMenu @JvmOverloads constructor(
             titleBar.setBackgroundColor(titleBgColor)
             titleBar.setTextColor(titleTextColor)
             titleBar.setColorFilter(titleTextColor)
-            upTitleBarMenuIconTint(titleTextColor)
             bottomMenu.setBackgroundColor(bgColor)
         }
         if (AppConfig.showReadTitleBarAddition) {
@@ -155,19 +153,6 @@ class MangaMenu @JvmOverloads constructor(
         ivAutoPage.setColorFilter(textColor)
         ivBrightness.setColorFilter(textColor)
         ivSetting.setColorFilter(textColor)
-    }
-
-    /**
-     * 顶栏菜单图标颜色须与顶栏文字保持一致。
-     * 菜单图标默认由 BaseActivity.applyTint 按主题取色，开启"顶栏颜色透明"后
-     * 取色依据是主题背景色，与漫画页顶栏自身背景/文字色无关，会造成颜色不一致。
-     */
-    fun refreshMenuColorFilter() {
-        upTitleBarMenuIconTint(context.primaryTextColor)
-    }
-
-    private fun upTitleBarMenuIconTint(color: Int) {
-        binding.titleBar.menu.applyTint(context, tintColor = color)
     }
 
     private fun upBrightnessVwPos() {

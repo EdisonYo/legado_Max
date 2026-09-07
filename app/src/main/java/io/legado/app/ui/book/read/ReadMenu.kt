@@ -43,7 +43,6 @@ import io.legado.app.utils.ColorUtils
 import io.legado.app.utils.ConstraintModify
 import io.legado.app.utils.activity
 import io.legado.app.utils.applyNavigationBarPadding
-import io.legado.app.utils.applyTint
 import io.legado.app.utils.dpToPx
 import io.legado.app.utils.getPrefBoolean
 import io.legado.app.utils.gone
@@ -193,7 +192,6 @@ class ReadMenu @JvmOverloads constructor(
             titleBar.setColorFilter(textColor)
             tvChapterName.setTextColor(lightTextColor)
             tvChapterUrl.setTextColor(lightTextColor)
-            upTitleBarMenuIconTint(textColor)
         } else {
             val bgColor = context.primaryColor
             val textColor = context.primaryTextColor
@@ -202,7 +200,6 @@ class ReadMenu @JvmOverloads constructor(
             titleBar.setColorFilter(textColor)
             tvChapterName.setTextColor(textColor)
             tvChapterUrl.setTextColor(textColor)
-            upTitleBarMenuIconTint(textColor)
         }
         val brightnessBackground = GradientDrawable()
         brightnessBackground.cornerRadius = 5F.dpToPx()
@@ -255,20 +252,9 @@ class ReadMenu @JvmOverloads constructor(
     }
 
     fun refreshMenuColorFilter() {
-        val titleColor = if (immersiveMenu) textColor else context.primaryTextColor
         if (immersiveMenu) {
-            binding.titleBar.setColorFilter(titleColor)
+            binding.titleBar.setColorFilter(textColor)
         }
-        upTitleBarMenuIconTint(titleColor)
-    }
-
-    /**
-     * 顶栏菜单图标（换源/刷新/缓存等）颜色须与顶栏文字保持一致。
-     * 菜单图标默认由 BaseActivity.applyTint 按主题取色，开启"顶栏颜色透明"后
-     * 取色依据是主题背景色，与阅读页顶栏自身背景/文字色无关，会造成颜色不一致。
-     */
-    private fun upTitleBarMenuIconTint(color: Int) {
-        binding.titleBar.menu.applyTint(context, tintColor = color)
     }
 
     private fun upColorConfig() {
