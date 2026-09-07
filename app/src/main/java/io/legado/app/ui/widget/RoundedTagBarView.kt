@@ -39,6 +39,7 @@ class RoundedTagBarView @JvmOverloads constructor(
     /** 选中项背景：强调色 alpha 值，与首页排行榜多分类 Tab 的 12% 一致 */
     private companion object {
         const val SELECTED_BG_ALPHA = 31 // 约 12%
+        const val SELECTED_STROKE_ALPHA = 102 // 约 40%
         const val NORMAL_STROKE_ALPHA = 51 // 约 20%
     }
 
@@ -275,7 +276,7 @@ class RoundedTagBarView @JvmOverloads constructor(
         override fun getItemCount(): Int = items.size
     }
 
-    /** 构建单个标签的胶囊背景：选中用强调色半透明填充，未选中用同色半透明描边 */
+    /** 构建单个标签的胶囊背景：选中用强调色半透明填充 + 强调色描边，未选中用同色半透明描边 */
     private fun buildItemBackground(selected: Boolean): GradientDrawable {
         val cornerRadius = resources.getDimensionPixelSize(R.dimen.bookshelf_tag_item_corner_radius).toFloat()
         val strokeWidth = resources.getDimensionPixelSize(R.dimen.bookshelf_tag_item_stroke_width)
@@ -284,7 +285,7 @@ class RoundedTagBarView @JvmOverloads constructor(
             setCornerRadius(cornerRadius)
             if (selected) {
                 setColor(adapter.selectedBackgroundColor)
-                setStroke(0, Color.TRANSPARENT)
+                setStroke(strokeWidth, ColorUtils.setAlphaComponent(context.accentColor, SELECTED_STROKE_ALPHA))
             } else {
                 setColor(Color.TRANSPARENT)
                 setStroke(
