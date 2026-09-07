@@ -185,8 +185,8 @@ class BooksAdapterList(context: Context, callBack: CallBack) :
                 flexboxLayout.addView(wordCountTag)
             }
 
-            // 后显示分类标签
-            val tagsText = item.customTag ?: item.kind ?: ""
+            // 后显示分类标签（只显示书源分类信息，书籍标签仅用于书架标签栏，不在此处展示）
+            val tagsText = item.kind ?: ""
             if (tagsText.isNotBlank()) {
                 val tags = tagsText.splitNotBlank(",", "\n")
                 for (tag in tags) {
