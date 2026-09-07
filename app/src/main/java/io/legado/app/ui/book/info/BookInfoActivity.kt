@@ -630,7 +630,6 @@ class BookInfoActivity :
         upTvBookshelf()
         upKinds(book)
         upGroup(book.group)
-        upTag(book)
         viewModel.prepareAuthorOtherWorks(book)
         upAuthorOtherWorksVisibility(book)
     }
@@ -895,6 +894,8 @@ class BookInfoActivity :
             binding.tvShelf.text = getString(R.string.add_to_bookshelf)
         }
         editMenuItem?.isVisible = viewModel.inBookshelf
+        // 书架状态变化（如加入书架）时同步刷新标签行的可见性
+        viewModel.getBook(false)?.let { upTag(it) }
     }
 
     private fun upGroup(groupId: Long) {
@@ -912,7 +913,8 @@ class BookInfoActivity :
     }
 
     private fun upTag(book: Book) {
-        if (!AppConfig.bookInfoShowBookTag) {
+        // 标签属于书架管理功能，未加入书架的书籍不显示标签行与设置入口
+        if (!AppConfig.bookInfoShowBookTag || !viewModel.inBookshelf) {
             binding.llBookTag?.gone()
             return
         }
