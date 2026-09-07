@@ -128,7 +128,7 @@ fun ThemeEditDialog(
 
                 // 导航栏颜色透明
                 SwitchRow(
-                    title = stringResource(R.string.imm_navigation_bar_s),
+                    title = stringResource(R.string.top_bar_transparent),
                     subtitle = stringResource(R.string.top_bar_transparent_hint),
                     checked = config.transparentNavBar,
                     onCheckedChange = { checked -> onUpdateDraft { cfg -> cfg.copy(transparentNavBar = checked) } }

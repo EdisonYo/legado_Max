@@ -404,7 +404,8 @@
     <string name="no_book_cache">没有已缓存的书籍</string>
     <string name="status_bar_immersion">状态栏颜色透明</string>
     <string name="imm_navigation_bar">沉浸式导航栏</string>
-    <string name="imm_navigation_bar_s">顶栏颜色透明</string>
+    <string name="imm_navigation_bar_s">导航栏颜色透明</string>
+    <string name="top_bar_transparent">顶栏颜色透明</string>
     <string name="top_bar_transparent_hint">关闭后会显示顶栏阴影，打开则消失</string>
     <string name="add_to_bookshelf">放入书架</string>
     <string name="add_to_favorites">加入收藏</string>

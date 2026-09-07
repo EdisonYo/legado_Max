@@ -376,7 +376,8 @@
     <string name="local_book">本地書籍</string>
     <string name="status_bar_immersion">狀態欄顏色透明</string>
     <string name="imm_navigation_bar">沉浸式导航栏</string>
-    <string name="imm_navigation_bar_s">頂欄顏色透明</string>
+    <string name="imm_navigation_bar_s">導航欄顏色透明</string>
+    <string name="top_bar_transparent">頂欄顏色透明</string>
     <string name="top_bar_transparent_hint">關閉後會顯示頂欄陰影，開啟則消失</string>
     <string name="add_to_bookshelf">放入書架</string>
     <string name="add_to_favorites">加入收藏</string>
