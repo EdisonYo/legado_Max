@@ -179,13 +179,13 @@ class ReadRecordRepositoryTest {
         val repository = ReadRecordRepository(dao) { CURRENT_DEVICE_ID }
         // 翻页高频上报产生的首尾相接碎片
         dao.insertSession(
-            ReadRecordSession(deviceId = CURRENT_DEVICE_ID, bookName = "Fragment Book", bookAuthor = "Author", startTime = 1_000L, endTime = 30_000L, words = 100L)
+            ReadRecordSession(deviceId = CURRENT_DEVICE_ID, bookName = "Fragment Book", bookAuthor = "Author", startTime = 1_000L, endTime = 30_000L, words = 100L, durChapterTitle = "第一章")
         )
         dao.insertSession(
-            ReadRecordSession(deviceId = CURRENT_DEVICE_ID, bookName = "Fragment Book", bookAuthor = "Author", startTime = 30_000L, endTime = 45_000L, words = 50L)
+            ReadRecordSession(deviceId = CURRENT_DEVICE_ID, bookName = "Fragment Book", bookAuthor = "Author", startTime = 30_000L, endTime = 45_000L, words = 50L, durChapterTitle = "第二章")
         )
         dao.insertSession(
-            ReadRecordSession(deviceId = CURRENT_DEVICE_ID, bookName = "Fragment Book", bookAuthor = "Author", startTime = 45_000L, endTime = 60_000L, words = 20L)
+            ReadRecordSession(deviceId = CURRENT_DEVICE_ID, bookName = "Fragment Book", bookAuthor = "Author", startTime = 45_000L, endTime = 60_000L, words = 20L, durChapterTitle = "第三章")
         )
 
         val days = repository.getBookTimelineDays("Fragment Book", "Author").first()
@@ -195,6 +195,8 @@ class ReadRecordRepositoryTest {
         assertEquals(1_000L, days[0].sessions[0].startTime)
         assertEquals(60_000L, days[0].sessions[0].endTime)
         assertEquals(170L, days[0].sessions[0].words)
+        // 合并后的会话应显示最后读到的章节，而不是开始阅读的章节
+        assertEquals("第三章", days[0].sessions[0].durChapterTitle)
     }
 
     @Test

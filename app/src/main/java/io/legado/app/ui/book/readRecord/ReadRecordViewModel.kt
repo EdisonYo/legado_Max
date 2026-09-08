@@ -436,7 +436,11 @@ class ReadRecordViewModel : ViewModel() {
                 current.bookAuthor == last.bookAuthor &&
                 (current.startTime - last.endTime) <= gapLimit
             ) {
-                mergedList[mergedList.lastIndex] = last.copy(endTime = maxOf(last.endTime, current.endTime))
+                mergedList[mergedList.lastIndex] = last.copy(
+                    endTime = maxOf(last.endTime, current.endTime),
+                    // 章节名取最新碎片：连续阅读时碎片会不断合并，必须跟随最后读到的章节
+                    durChapterTitle = current.durChapterTitle.ifBlank { last.durChapterTitle }
+                )
             } else {
                 mergedList.add(current.copy())
             }

@@ -225,7 +225,9 @@ class ReadRecordRepository(
             if ((current.startTime - last.endTime) <= SESSION_MERGE_GAP) {
                 merged[merged.lastIndex] = last.copy(
                     endTime = max(current.endTime, last.endTime),
-                    words = last.words + current.words
+                    words = last.words + current.words,
+                    // 章节名取最新碎片：连续阅读时碎片会不断合并，必须跟随最后读到的章节
+                    durChapterTitle = current.durChapterTitle.ifBlank { last.durChapterTitle }
                 )
             } else {
                 merged.add(current.copy())
