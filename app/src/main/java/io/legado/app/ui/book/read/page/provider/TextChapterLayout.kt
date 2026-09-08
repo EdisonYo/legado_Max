@@ -2,6 +2,7 @@ package io.legado.app.ui.book.read.page.provider
 
 import android.graphics.Paint
 import android.text.Layout
+import android.text.SpannableString
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.StaticLayout
@@ -1021,6 +1022,10 @@ class TextChapterLayout(
                     staticLayout.getPrimaryHorizontal(charIndex + 1)
                 } else {
                     tempPaint.textSize = textSize
+                    // 行尾字符无下一列可取坐标，需按该字符实际字体测宽，保持与绘制一致
+                    tempPaint.typeface = HighlightFontCache.getTypefaceFor(
+                        highlightFontPath, textPaint.typeface
+                    ) ?: textPaint.typeface
                     val charWidth = tempPaint.measureText(char)
                     charX + charWidth
                 }
@@ -1306,12 +1311,47 @@ class TextChapterLayout(
         for (i in text.indices) {
             val fontPath = charStyles[i]?.font
             if (fontPath.isNullOrEmpty()) continue
-            val typeface = HighlightFontCache.getTypeface(fontPath) ?: continue
+            // 原 width 为 0 的下标属于代理对/组合字符簇的延续，重测会破坏聚类
+            if (widthsArray[i] <= 0f) continue
+            val typeface = HighlightFontCache.getTypefaceFor(fontPath, textPaint.typeface) ?: continue
             highlightFontPaint.textSize = textPaint.textSize
             highlightFontPaint.letterSpacing = textPaint.letterSpacing
+            highlightFontPaint.textScaleX = textPaint.textScaleX
+            highlightFontPaint.textSkewX = textPaint.textSkewX
             highlightFontPaint.typeface = typeface
             widthsArray[i] = highlightFontPaint.measureText(text, i, i + 1)
         }
+    }
+
+    /**
+     * 存在高亮字体时，把命中区间包成带 HighlightTypefaceSpan 的 SpannableString，
+     * 让 StaticLayout 断行测量与逐字符列宽使用同一套字体，避免行宽错位。
+     */
+    private fun buildFontAwareLayoutText(
+        text: String,
+        charStyles: Array<CharStyle?>?,
+    ): CharSequence {
+        if (charStyles == null) return text
+        var spanStart = -1
+        var spanFont = ""
+        var spannable: SpannableString? = null
+        for (i in 0..text.length) {
+            val font = if (i < text.length) charStyles[i]?.font.orEmpty() else ""
+            if (font != spanFont) {
+                if (spanFont.isNotEmpty() && spanStart in 0 until i) {
+                    val sb = spannable ?: SpannableString(text).also { spannable = it }
+                    sb.setSpan(
+                        HighlightTypefaceSpan(spanFont),
+                        spanStart,
+                        i,
+                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                    )
+                }
+                spanStart = i
+                spanFont = font
+            }
+        }
+        return spannable ?: text
     }
 
     private fun extractHighlightStyle(spanned: CharSequence, index: Int): HighlightStyleSpan? {
@@ -1532,7 +1572,15 @@ class TextChapterLayout(
             val indentSize = if (isFirstLine) paragraphIndent.length else 0
             ZhLayout(text, textPaint, visibleWidth, words, widths, indentSize)
         } else {
-            StaticLayout(text, textPaint, visibleWidth, Layout.Alignment.ALIGN_NORMAL, 0f, 0f, true)
+            StaticLayout(
+                buildFontAwareLayoutText(text, charStyles),
+                textPaint,
+                visibleWidth,
+                Layout.Alignment.ALIGN_NORMAL,
+                0f,
+                0f,
+                true
+            )
         }
         durY = when {
             //标题y轴居中

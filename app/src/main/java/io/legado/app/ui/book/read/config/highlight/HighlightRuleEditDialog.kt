@@ -550,10 +550,14 @@ class HighlightRuleEditDialog @JvmOverloads constructor(
             showBgImagePicker()
         }
         binding.etFont.setOnClickListener {
-            showDialogFragment<FontSelectDialog>()
+            showDialogFragment<FontSelectDialog> {
+                putBoolean(FontSelectDialog.ARG_FOR_RULE, true)
+            }
         }
         binding.tvFontPick.setOnClickListener {
-            showDialogFragment<FontSelectDialog>()
+            showDialogFragment<FontSelectDialog> {
+                putBoolean(FontSelectDialog.ARG_FOR_RULE, true)
+            }
         }
         binding.spBgImageFit.onItemSelectedListener =
             object : android.widget.AdapterView.OnItemSelectedListener {

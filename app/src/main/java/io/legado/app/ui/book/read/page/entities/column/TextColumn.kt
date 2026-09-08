@@ -76,10 +76,13 @@ data class TextColumn(
             textPaint.color = drawColor
         }
         val y = textLine.lineBase - textLine.lineTop
-        // 高亮规则指定字体时临时替换画笔字体，绘制完立即还原，避免影响同行其他列
+        // 高亮规则指定字体时临时替换画笔字体，绘制完立即还原，避免影响同行其他列；
+        // 无条件保存/还原，避免依赖画笔原字体非空的隐含假设
         val oldTypeface = if (fontPath.isNotEmpty()) textPaint.typeface else null
         if (fontPath.isNotEmpty()) {
-            textPaint.typeface = HighlightFontCache.getTypeface(fontPath) ?: textPaint.typeface
+            HighlightFontCache.getTypefaceFor(fontPath, textPaint.typeface)?.let {
+                textPaint.typeface = it
+            }
         }
         if (underlineMode == 7) {
             val oldSkewX = textPaint.textSkewX

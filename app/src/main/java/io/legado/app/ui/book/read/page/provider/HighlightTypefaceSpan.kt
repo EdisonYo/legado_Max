@@ -22,6 +22,6 @@ class HighlightTypefaceSpan(
     }
 
     private fun apply(tp: TextPaint) {
-        HighlightFontCache.getTypeface(fontPath)?.let { tp.typeface = it }
+        HighlightFontCache.getTypefaceFor(fontPath, tp.typeface)?.let { tp.typeface = it }
     }
 }

@@ -76,9 +76,11 @@ data class TextHtmlColumn(
 
     override fun draw(view: ContentTextView, canvas: Canvas) {
         val y = textLine.lineBase - textLine.lineTop
-        // 高亮规则指定字体时替换画笔字体；textPaint 为列私有拷贝，无需还原
+        // 高亮规则指定字体时替换画笔字体（保留原字重/斜体）；textPaint 为列私有拷贝，无需还原
         if (fontPath.isNotEmpty()) {
-            HighlightFontCache.getTypeface(fontPath)?.let { textPaint.typeface = it }
+            HighlightFontCache.getTypefaceFor(fontPath, textPaint.typeface)?.let {
+                textPaint.typeface = it
+            }
         }
         if (linkUrl != null) {
             textPaint.run {

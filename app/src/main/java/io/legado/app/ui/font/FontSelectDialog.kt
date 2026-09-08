@@ -43,7 +43,14 @@ import java.io.File
 class FontSelectDialog : BaseDialogFragment(R.layout.dialog_font_select),
     Toolbar.OnMenuItemClickListener,
     FontAdapter.CallBack {
+
+    companion object {
+        /** 规则字体选择场景：菜单"系统字体"只清空回调字体，不改全局 AppConfig.systemTypefaces */
+        const val ARG_FOR_RULE = "forRule"
+    }
+
     private val fontRegex = Regex("(?i).*\\.[ot]tf")
+    private val forRule get() = arguments?.getBoolean(ARG_FOR_RULE) == true
     private val binding by viewBinding(DialogFontSelectBinding::bind)
     private val adapter by lazy {
         val curFontPath = callBack?.curFontPath ?: ""
@@ -104,6 +111,12 @@ class FontSelectDialog : BaseDialogFragment(R.layout.dialog_font_select),
     override fun onMenuItemClick(item: MenuItem?): Boolean {
         when (item?.itemId) {
             R.id.menu_default -> {
+                if (forRule) {
+                    // 规则字体场景下"系统字体"意为恢复默认（清空），不能误改全局设置
+                    onDefaultFontChange()
+                    dismissAllowingStateLoss()
+                    return true
+                }
                 val requireContext = requireContext()
                 alert(titleResource = R.string.system_typeface) {
                     items(
