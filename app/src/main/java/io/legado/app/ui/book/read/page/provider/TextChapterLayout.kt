@@ -112,6 +112,9 @@ class TextChapterLayout(
 
     private val contentPaint = ChapterProvider.contentPaint
     private val reviewCharWidth by lazy { contentPaint.measureText(srcReplaceStr) * 1.5556f }
+
+    // 高亮规则字体测宽专用画笔，参数在每次使用前按当前排版画笔设置
+    private val highlightFontPaint = TextPaint().apply { isAntiAlias = true }
     private val contentPaintTextHeight = ChapterProvider.contentPaintTextHeight
     private val contentPaintFontMetrics = ChapterProvider.contentPaintFontMetrics
 
@@ -1013,6 +1016,7 @@ class TextChapterLayout(
                 val bgImage = highlightStyle?.bgImage ?: ""
                 val bgImageFit = highlightStyle?.bgImageFit ?: 0
                 val bgImageScale = highlightStyle?.bgImageScale ?: 1f
+                val highlightFontPath = extractFontPath(spanned, charIndex)
                 val charRight = if (charIndex + 1 < lineEnd) {
                     staticLayout.getPrimaryHorizontal(charIndex + 1)
                 } else {
@@ -1135,7 +1139,8 @@ class TextChapterLayout(
                                 bgColor = bgColor,
                                 bgImage = bgImage,
                                 bgImageFit = bgImageFit,
-                                bgImageScale = bgImageScale
+                                bgImageScale = bgImageScale,
+                                fontPath = highlightFontPath
                             )
                         )
                         needAddText = false
@@ -1155,7 +1160,8 @@ class TextChapterLayout(
                             bgColor = bgColor,
                             bgImage = bgImage,
                             bgImageFit = bgImageFit,
-                            bgImageScale = bgImageScale
+                            bgImageScale = bgImageScale,
+                            fontPath = highlightFontPath
                         )
                     )
                 }
@@ -1279,6 +1285,33 @@ class TextChapterLayout(
     private fun extractTextColor(spanned: Spanned, index: Int): Int? {
         val foregroundSpans = spanned.getSpans(index, index + 1, ForegroundColorSpan::class.java)
         return foregroundSpans.lastOrNull()?.foregroundColor
+    }
+
+    private fun extractFontPath(spanned: Spanned, index: Int): String {
+        val spans = spanned.getSpans(index, index + 1, HighlightTypefaceSpan::class.java)
+        return spans.lastOrNull()?.fontPath.orEmpty()
+    }
+
+    /**
+     * 高亮规则指定字体时，按高亮字体重新测量对应字符宽度，
+     * 保证排版宽度与最终绘制一致。
+     */
+    private fun adjustWidthsForHighlightFont(
+        text: String,
+        widthsArray: FloatArray,
+        charStyles: Array<CharStyle?>?,
+        textPaint: TextPaint,
+    ) {
+        if (charStyles == null) return
+        for (i in text.indices) {
+            val fontPath = charStyles[i]?.font
+            if (fontPath.isNullOrEmpty()) continue
+            val typeface = HighlightFontCache.getTypeface(fontPath) ?: continue
+            highlightFontPaint.textSize = textPaint.textSize
+            highlightFontPaint.letterSpacing = textPaint.letterSpacing
+            highlightFontPaint.typeface = typeface
+            widthsArray[i] = highlightFontPaint.measureText(text, i, i + 1)
+        }
     }
 
     private fun extractHighlightStyle(spanned: CharSequence, index: Int): HighlightStyleSpan? {
@@ -1436,6 +1469,15 @@ class TextChapterLayout(
                 Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
             )
         }
+        if (style.font.isNotBlank()) {
+            // 字体属于影响测量的样式，StaticLayout 排版需要 MetricAffectingSpan
+            spannable.setSpan(
+                HighlightTypefaceSpan(style.font),
+                start,
+                end,
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+        }
         if (style.hasDecoration) {
             spannable.setSpan(
                 HighlightStyleSpan(style),
@@ -1471,6 +1513,7 @@ class TextChapterLayout(
         }
         val widthsArray = allocateFloatArray(text.length)
         textPaint.getTextWidthsCompat(text, widthsArray, reviewCharWidth)
+        adjustWidthsForHighlightFont(text, widthsArray, charStyles, textPaint)
         // 调整气泡内联宽度
         if (srcList != null && srcList.isNotEmpty()) {
             var imageIndex = 0
@@ -1813,6 +1856,7 @@ class TextChapterLayout(
         val bgImage = style?.bgImage ?: ""
         val bgImageFit = style?.bgImageFit ?: 0
         val bgImageScale = style?.bgImageScale ?: 1f
+        val fontPath = style?.font.orEmpty()
         val column = when {
             !srcList.isNullOrEmpty() && (char == srcReplaceStr || char == reviewStr) -> {
                 val src = srcList.removeFirst()
@@ -1852,7 +1896,8 @@ class TextChapterLayout(
                     bgColor = bgColor,
                     bgImage = bgImage,
                     bgImageFit = bgImageFit,
-                    bgImageScale = bgImageScale
+                    bgImageScale = bgImageScale,
+                    fontPath = fontPath
                 )
             }
         }
@@ -1974,6 +2019,7 @@ class TextChapterLayout(
                 bgImage = style.bgImage,
                 bgImageFit = style.bgImageFit,
                 bgImageScale = style.bgImageScale,
+                font = style.font,
             )
         }
     }

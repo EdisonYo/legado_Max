@@ -18,6 +18,8 @@ data class HighlightRule(
     var underlineWidth: Float = 1f,
     var underlineOffset: Float = 2f,
     var underlineSvgPath: String? = null,
+    /** 高亮字体路径（FileDoc 字符串），为空时跟随阅读字体 */
+    var font: String? = null,
     var bgColor: Int? = null,
     var bgImage: String? = null,
     var bgImageFit: Int = 0,
@@ -64,6 +66,10 @@ data class HighlightRule(
                     else -> "下划线"
                 } + underlineColor?.let { " ${it.toHexColor()}" }.orEmpty()
             )
+        }
+        if (!font.isNullOrBlank()) {
+            val fontName = font!!.substringAfterLast('/').substringAfterLast('\\').ifBlank { font!! }
+            parts.add("字体 $fontName")
         }
         if (!bgImage.isNullOrBlank()) {
             parts.add(

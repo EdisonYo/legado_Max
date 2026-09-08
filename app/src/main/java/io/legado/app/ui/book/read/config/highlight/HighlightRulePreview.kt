@@ -3,6 +3,7 @@ package io.legado.app.ui.book.read.config.highlight
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.style.ForegroundColorSpan
+import io.legado.app.ui.book.read.page.provider.HighlightTypefaceSpan
 
 /**
  * 高亮规则配置页的预览文本构建器。
@@ -20,6 +21,14 @@ object HighlightRulePreview {
         regex.findAll(text).forEach { match ->
             val start = match.range.first
             val end = match.range.last + 1
+            if (style.font.isNotBlank()) {
+                spannable.setSpan(
+                    HighlightTypefaceSpan(style.font),
+                    start,
+                    end,
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+            }
             val textColor = style.resolvedTextColor
             val accentColor = style.resolvedAccentColor
             val underlineWidth = style.underlineWidth

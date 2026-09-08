@@ -376,7 +376,7 @@ data class TextLine(
             return false
         }
         return columns.none {
-            it is TextBaseColumn && (it.textColor != null || it.underlineMode != 0 || it.bgImage.isNotEmpty() || it.bgColor != null)
+            it is TextBaseColumn && (it.textColor != null || it.underlineMode != 0 || it.bgImage.isNotEmpty() || it.bgColor != null || it.fontPath.isNotEmpty())
         }
     }
 

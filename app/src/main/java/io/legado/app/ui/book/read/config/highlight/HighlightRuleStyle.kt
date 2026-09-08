@@ -17,6 +17,8 @@ data class HighlightRuleStyle(
     val bgImage: String,
     val bgImageFit: Int,
     val bgImageScale: Float,
+    /** 高亮字体路径，空串表示跟随阅读字体 */
+    val font: String = "",
 ) {
 
     val resolvedTextColor: Int
@@ -41,6 +43,7 @@ data class HighlightRuleStyle(
                 bgImage = rule.bgImage.orEmpty(),
                 bgImageFit = rule.bgImageFit,
                 bgImageScale = rule.bgImageScale,
+                font = rule.font.orEmpty(),
             )
         }
     }

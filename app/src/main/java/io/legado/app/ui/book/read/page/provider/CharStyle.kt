@@ -18,6 +18,8 @@ data class CharStyle(
     val bgImage: String = "",
     val bgImageFit: Int = 0,
     val bgImageScale: Float = 1f,
+    /** 高亮字体路径，空串表示跟随阅读字体 */
+    val font: String = "",
 ) {
 
     /**
@@ -43,6 +45,7 @@ data class CharStyle(
             bgImage = if (later.bgImage.isNotEmpty()) later.bgImage else bgImage,
             bgImageFit = if (later.bgImage.isNotEmpty()) later.bgImageFit else bgImageFit,
             bgImageScale = if (later.bgImage.isNotEmpty()) later.bgImageScale else bgImageScale,
+            font = if (later.font.isNotEmpty()) later.font else font,
         )
     }
 }

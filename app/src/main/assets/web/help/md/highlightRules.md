@@ -232,6 +232,7 @@ data class HighlightRule(
     var underlineWidth: Float,       // 下划线宽度
     var underlineOffset: Float,      // 下划线偏移
     var underlineSvgPath: String?,   // 自定义 SVG 路径
+    var font: String?,               // 高亮字体路径，为空跟随阅读字体
     var bgImage: String?,            // 背景图片路径
     var bgImageFit: Int,             // 背景图适配方式
     var bgImageScale: Float          // 背景图缩放
@@ -273,6 +274,12 @@ data class HighlightRule(
 | 0 | TARGET_ALL | 作用于标题和正文 |
 | 1 | TARGET_TITLE | 仅作用于标题 |
 | 2 | TARGET_BODY | 仅作用于正文 |
+
+#### 高亮字体 (font)
+
+- 默认为空，跟随阅读界面设置的字体（默认不选择字体）。
+- 在规则编辑页点击"字体 → 选择"，可从字体目录或内置字体目录选择字体文件（支持 .ttf / .otf），选择逻辑与阅读界面"正文/标题字体"一致。
+- 在字体选择对话框菜单中选"系统字体"可恢复默认（清空）。
 
 #### 背景图适配 (bgImageFit)
 
