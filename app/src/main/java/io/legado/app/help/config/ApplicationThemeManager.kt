@@ -6,6 +6,7 @@ import androidx.annotation.Keep
 import io.legado.app.constant.EventBus
 import io.legado.app.constant.PreferKey
 import io.legado.app.data.repository.CoverGalleryRepository
+import io.legado.app.help.DefaultData
 import io.legado.app.utils.FileUtils
 import io.legado.app.utils.GSON
 import io.legado.app.utils.fromJsonArray
@@ -47,6 +48,44 @@ object ApplicationThemeManager {
     private const val maxAssetBytes = 64L * 1024 * 1024
     internal const val maxCoverImages = 500
     private val filePath = FileUtils.getPath(appCtx.filesDir, fileName)
+
+    /** 内置默认应用主题的固定 ID，不落盘，不可删除、不可重命名、不可编辑，始终显示在列表首位 */
+    const val builtinThemeId = "builtin_default_app_theme"
+
+    /** 内置默认应用主题引用的 assets 默认阅读主题名（日间/夜间） */
+    private const val builtinDayThemeName = "蓝煤灰"
+    private const val builtinNightThemeName = "黑白"
+
+    /**
+     * 内置默认应用主题：日间用「蓝煤灰」、夜间用「黑白」，顶栏/底栏取默认内置配置，封面图集不设置。
+     * 日夜间子主题取 assets 默认阅读主题的拷贝，找不到同名时回退到该模式的第一个默认主题。
+     * 注意：深拷贝的前提是 [ThemeConfig.Config] 只含原始类型/String 字段；若日后增加集合等
+     * 可变引用字段，[builtinConfigCopy] 需要同步加深拷贝层级。
+     */
+    private val builtinConfig: Config by lazy {
+        val defaults = DefaultData.themeConfigs
+        val navConfigs = NavigationBarConfig.loadConfigs(appCtx)
+        Config(
+            id = builtinThemeId,
+            dayTheme = (defaults.firstOrNull { !it.isNightTheme && it.themeName == builtinDayThemeName }
+                ?: defaults.firstOrNull { !it.isNightTheme })?.copy(backgroundImgPath = null),
+            nightTheme = (defaults.firstOrNull { it.isNightTheme && it.themeName == builtinNightThemeName }
+                ?: defaults.firstOrNull { it.isNightTheme })?.copy(backgroundImgPath = null),
+            dayBottomBarId = navConfigs.firstOrNull { !it.isNight && it.isBuiltin }?.id,
+            nightBottomBarId = navConfigs.firstOrNull { it.isNight && it.isBuiltin }?.id,
+            updatedAt = 0L
+        )
+    }
+
+    /**
+     * 深拷贝内置默认主题，避免列表项与共享实例互相影响可变字段；
+     * 名称现场读取，语言切换后无需重启进程即可更新显示名。
+     */
+    private fun builtinConfigCopy(): Config = builtinConfig.copy(
+        name = appCtx.getString(R.string.application_theme_builtin_name),
+        dayTheme = builtinConfig.dayTheme?.copy(),
+        nightTheme = builtinConfig.nightTheme?.copy()
+    )
 
     /**
      * 应用主题配置数据类。
@@ -194,15 +233,28 @@ object ApplicationThemeManager {
         )
     }
 
-    /** 从文件加载所有应用主题配置，自动校验大小和格式 */
+    /** 从文件加载所有应用主题配置（内置默认主题始终排在首位且不落盘），自动校验大小和格式 */
     fun load(): MutableList<Config> {
+        val items = loadPersisted()
+        items.add(0, builtinConfigCopy())
+        return items
+    }
+
+    /** 判断是否为内置默认应用主题 */
+    fun isBuiltin(config: Config): Boolean = config.id == builtinThemeId
+
+    /** 从文件加载用户持久化的应用主题配置，不含内置默认主题 */
+    private fun loadPersisted(): MutableList<Config> {
         val file = File(filePath)
         if (!file.isFile) return mutableListOf()
         require(file.length() <= maxConfigBytes) { appCtx.getString(R.string.app_theme_config_too_large) }
         val parsed = GSON.fromJsonArray<Config>(file.readText()).getOrElse {
             throw IllegalStateException(appCtx.getString(R.string.app_theme_config_corrupted), it)
         }
-        return parsed.map { sanitize(it) }.toMutableList()
+        return parsed.map { sanitize(it) }
+            // 防御历史落盘数据中残留的内置 ID，避免 load() 出现重复的内置项
+            .filterNot { it.id == builtinThemeId }
+            .toMutableList()
     }
 
     /** 获取当前激活的应用主题 ID */
@@ -397,12 +449,16 @@ object ApplicationThemeManager {
     internal fun addImported(imported: Config): Config {
         val items = load()
         val baseName = imported.name.trim().ifBlank { appCtx.getString(io.legado.app.R.string.application_theme_manage) }
-        // 同名配置直接覆盖（复用原有 ID），避免反复追加“名称 2”
-        val existingIndex = items.indexOfFirst { it.name == baseName }
+        // 同名配置直接覆盖（复用原有 ID），避免反复追加“名称 2”；内置默认主题不参与同名覆盖
+        val existingIndex = items.indexOfFirst { it.id != builtinThemeId && it.name == baseName }
         val next = if (existingIndex >= 0) {
             imported.copy(id = items[existingIndex].id, name = baseName, updatedAt = System.currentTimeMillis())
         } else {
-            imported.copy(id = UUID.randomUUID().toString(), name = baseName, updatedAt = System.currentTimeMillis())
+            imported.copy(
+                id = UUID.randomUUID().toString(),
+                name = uniqueName(baseName, items.map { it.name }.toSet()),
+                updatedAt = System.currentTimeMillis()
+            )
         }
         if (existingIndex >= 0) items[existingIndex] = next else items.add(next)
         save(items)
@@ -461,8 +517,9 @@ object ApplicationThemeManager {
         save(items)
     }
 
-    /** 替换配置（同 ID 覆盖，名称不能与其他配置重复） */
+    /** 替换配置（同 ID 覆盖，名称不能与其他配置重复）；内置默认主题固定不变，忽略覆盖 */
     fun replace(config: Config) {
+        if (config.id == builtinThemeId) return
         val items = load()
         require(config.name.isNotBlank())
         require(items.none { it.id != config.id && it.name == config.name })
@@ -471,8 +528,9 @@ object ApplicationThemeManager {
         save(items)
     }
 
-    /** 重命名配置 */
+    /** 重命名配置；内置默认主题名称固定，忽略重命名 */
     fun rename(id: String, name: String) {
+        if (id == builtinThemeId) return
         val items = load()
         val nextName = name.trim()
         require(nextName.isNotBlank())
@@ -484,8 +542,9 @@ object ApplicationThemeManager {
         }
     }
 
-    /** 删除配置，若删除的是当前配置则清除激活标记 */
+    /** 删除配置，若删除的是当前配置则清除激活标记；内置默认主题不可删除 */
     fun delete(context: Context, id: String) {
+        if (id == builtinThemeId) return
         save(load().filterNot { it.id == id })
         if (currentId(context) == id) context.putPrefString(currentIdKey, "")
     }
@@ -498,6 +557,8 @@ object ApplicationThemeManager {
      * @param options 删除选项，控制是否一并删除关联的主题、顶栏、底栏、封面图集
      */
     suspend fun deleteWithComponents(context: Context, id: String, options: DeleteOptions) {
+        // 内置默认主题不可删除
+        if (id == builtinThemeId) return
         val config = load().firstOrNull { it.id == id }
 
         // 删除关联的日间主题配置
@@ -588,8 +649,9 @@ object ApplicationThemeManager {
         applyBottomBar(context, true, config.nightBottomBarId)
 
         val coverRepository = CoverGalleryRepository()
-        config.dayCoverGroupId?.let { coverRepository.setSelectedGroup(false, it) }
-        config.nightCoverGroupId?.let { coverRepository.setSelectedGroup(true, it) }
+        // 封面图集为 null 表示「未设置」，应用时重置为默认（不使用图集），而非保持现状
+        coverRepository.setSelectedGroup(false, config.dayCoverGroupId)
+        coverRepository.setSelectedGroup(true, config.nightCoverGroupId)
 
         if (config.dayTheme != null && context.getPrefString(PreferKey.dThemeName) != config.dayTheme?.themeName) {
             throw IllegalStateException(appCtx.getString(R.string.app_theme_day_apply_failed))
@@ -620,11 +682,12 @@ object ApplicationThemeManager {
         return appCtx.getString(R.string.app_theme_summary_format, dayTheme, dayTop, dayBottom, dayCover, nightTheme, nightTop, nightBottom, nightCover)
     }
 
-    /** 安全保存配置列表：先写临时文件再原子替换，并备份原文件 */
+    /** 安全保存配置列表：先写临时文件再原子替换，并备份原文件；内置默认主题由代码生成，不落盘 */
     private fun save(items: List<Config>) {
+        val persisted = items.filterNot { it.id == builtinThemeId }
         val target = FileUtils.createFileIfNotExist(filePath)
         val temp = File("$filePath.tmp")
-        temp.writeText(GSON.toJson(items))
+        temp.writeText(GSON.toJson(persisted))
         if (target.exists()) target.copyTo(File("$filePath.bak"), overwrite = true)
         if (!temp.renameTo(target)) {
             temp.copyTo(target, overwrite = true)

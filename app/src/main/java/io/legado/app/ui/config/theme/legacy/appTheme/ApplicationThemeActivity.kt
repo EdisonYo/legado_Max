@@ -357,6 +357,13 @@ class ApplicationThemeActivity : BaseActivity<ActivityThemeManageBinding>() {
      * @param config 要操作的主题配置
      */
     private fun showActions(config: ApplicationThemeManager.Config) {
+        if (config.id == ApplicationThemeManager.builtinThemeId) {
+            // 内置默认主题不可编辑/重命名/删除，仅支持导出
+            selector(config.name, listOf(getString(R.string.application_theme_export))) { _, _ ->
+                exportConfig(config)
+            }
+            return
+        }
         val items = listOf(
             getString(R.string.edit),
             getString(R.string.application_theme_update_current),
@@ -579,11 +586,12 @@ class ApplicationThemeActivity : BaseActivity<ActivityThemeManageBinding>() {
             payloads: MutableList<Any>
         ) = binding.run {
             val config = item.config
+            val isBuiltin = config.id == ApplicationThemeManager.builtinThemeId
             tvName.text = config.name
             tvInfo.text = item.summary
             tvInfo.maxLines = 2
-            tvBuiltin.visibility = View.GONE
-            tvEdit.visibility = View.VISIBLE
+            tvBuiltin.visibility = if (isBuiltin) View.VISIBLE else View.GONE
+            tvEdit.visibility = if (isBuiltin) View.GONE else View.VISIBLE
             tvCopy.visibility = View.VISIBLE
             cbSelect.visibility = View.GONE
             ivShare.visibility = View.GONE
