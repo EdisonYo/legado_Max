@@ -184,6 +184,7 @@ object BackupController {
                 .writeText(GSON.toJson(HighlightRuleStore.backupData(appCtx)))
             writeListToJson(Backup.mergeReadRecordsForLegacyCompat(appDb.readRecordDao.all), "readRecord.json", webBackupPath)//导出readRecord.json 进行备份时，将相同 bookName 的多条记录合并为一条记录，readTime 取 SUM，bookAuthor 取非空值。这样 原始项目恢复 Max 备份后阅读时长计算正确
             writeListToJson(appDb.readRecordDao.getAllDetailsList(), "readRecordDetail.json", webBackupPath)
+            writeListToJson(appDb.readRecordDao.getAllSessionsList(), "readRecordSession.json", webBackupPath)
             writeListToJson(appDb.searchKeywordDao.all, "searchHistory.json", webBackupPath)
             writeListToJson(appDb.txtTocRuleDao.all, "txtTocRule.json", webBackupPath)
             writeListToJson(appDb.httpTTSDao.all, "httpTTS.json", webBackupPath)
@@ -338,6 +339,9 @@ object BackupController {
             },
             BackupItemDef("readRecordDetail.json", "阅读详情", "每本书每天的阅读统计") {
                 appDb.readRecordDao.getDetailsCount()
+            },
+            BackupItemDef("readRecordSession.json", "阅读时段", "时间线视图的阅读会话记录") {
+                appDb.readRecordDao.getSessionsCount()
             },
             BackupItemDef("searchHistory.json", "搜索历史", "搜索关键词历史") {
                 appDb.searchKeywordDao.count
