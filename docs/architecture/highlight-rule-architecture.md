@@ -194,6 +194,13 @@
 - `app/src/main/java/io/legado/app/help/storage/BackupSelectorConfig.kt`
   - 备份选择项中注册 `highlightRule.json`。
 
+### 字段名稳定性约束
+
+`HighlightRule` 与 `HighlightRuleStore.BackupData` 是 GSON 反射序列化的数据类，
+但不在 `data.entities` 包内，release 构建必须在 `app/proguard-rules.pro` 中
+保留这两个类的字段名。历史上曾因字段被 R8 混淆成 `a`/`b` 导致：升级后规则失效或丢失、
+备份恢复静默失败、导出键名变成单字母。新增需要持久化的高亮规则数据类时必须同步加 keep 规则。
+
 ## 需要注意的遗留点
 
 `TextChapterLayout.kt` 中还有两个私有方法：

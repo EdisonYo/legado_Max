@@ -61,6 +61,10 @@
 -keep class * extends io.legado.app.help.JsExtensions{*;}
 # 数据类
 -keep class **.data.entities.**{*;}
+# 高亮规则数据类：通过 GSON 持久化到 SharedPreferences 和 highlightRule.json 备份文件，
+# 字段名被混淆会导致升级后规则失效/丢失、备份恢复失败、导出键名变成 a/b 等乱码键
+-keep class io.legado.app.ui.book.read.config.highlight.HighlightRule{*;}
+-keep class io.legado.app.ui.book.read.config.highlight.HighlightRuleStore$BackupData{*;}
 -keep class io.legado.app.help.storage.BookCacheIndex{*;}
 -keep class io.legado.app.help.storage.ChapterCacheInfo{*;}
 -keep class io.legado.app.ui.book.cacheSelector.BookCacheIndex{*;}
