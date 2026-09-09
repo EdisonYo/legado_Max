@@ -68,8 +68,7 @@ data class HighlightRule(
             )
         }
         if (!font.isNullOrBlank()) {
-            val fontName = font!!.substringAfterLast('/').substringAfterLast('\\').ifBlank { font!! }
-            parts.add("字体 $fontName")
+            parts.add("字体 ${fontDisplayName()}")
         }
         if (!bgImage.isNullOrBlank()) {
             parts.add(
@@ -86,6 +85,19 @@ data class HighlightRule(
             parts.add("无样式")
         }
         return parts.joinToString(" / ")
+    }
+
+    /**
+     * 从字体路径中提取展示用的文件名。
+     * content:// 形式的 FileDoc 路径经过 URL 编码（如 %20），展示前需解码。
+     */
+    fun fontDisplayName(): String {
+        val fontPath = font ?: return ""
+        if (fontPath.isBlank()) return ""
+        val decoded = runCatching {
+            java.net.URLDecoder.decode(fontPath, "utf-8")
+        }.getOrNull() ?: fontPath
+        return decoded.substringAfterLast('/').substringAfterLast('\\').ifBlank { fontPath }
     }
 
     fun targetScopeLabel(): String {

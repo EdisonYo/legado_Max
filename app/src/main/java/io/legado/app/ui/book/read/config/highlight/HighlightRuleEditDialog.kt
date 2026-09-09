@@ -698,10 +698,7 @@ class HighlightRuleEditDialog @JvmOverloads constructor(
             if (fontPath.isNullOrBlank()) {
                 ""
             } else {
-                val decoded = kotlin.runCatching {
-                    java.net.URLDecoder.decode(fontPath, "utf-8")
-                }.getOrNull() ?: fontPath
-                decoded.substringAfterLast('/').substringAfterLast('\\').ifBlank { fontPath }
+                editingRule.fontDisplayName()
             }
         )
     }
