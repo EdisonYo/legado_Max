@@ -1,6 +1,7 @@
 package io.legado.app.ui.book.read.config.highlight
 
 import android.content.Context
+import com.google.gson.JsonParser
 import io.legado.app.constant.PreferKey
 import io.legado.app.utils.GSON
 import io.legado.app.utils.fromJsonArray
@@ -57,6 +58,11 @@ object HighlightRuleStore {
         val stored = context.getPrefString(PreferKey.highlightRuleItems)
         if (stored.isNullOrBlank()) {
             return mutableListOf()
+        }
+        // 混淆版本遗留数据：键名是 a/b 等混淆名，反序列化后正则等字段全为空，
+        // 表现为规则列表还在但怎么开关都不生效；数据不可恢复，重置为默认规则
+        if (isObfuscatedLegacyJson(stored)) {
+            return reset(context)
         }
         val rules = GSON.fromJsonArray<HighlightRule>(stored).getOrNull()?.toMutableList()
         if (rules != null) {
@@ -269,5 +275,32 @@ object HighlightRuleStore {
 
     private fun normalizeTargetScope(ruleScope: Int, builtinScope: Int): Int {
         return if (ruleScope in 0..2) ruleScope else builtinScope
+    }
+
+    /** HighlightRule 的规范字段名，用于识别混淆版本写出的损坏 JSON */
+    private val canonicalFieldNames = setOf(
+        "id", "name", "pattern", "isRegex", "sampleText", "group", "targetScope", "enabled",
+        "textColor", "underlineMode", "underlineColor", "underlineWidth", "underlineOffset",
+        "underlineSvgPath", "font", "bgColor", "bgImage", "bgImageFit", "bgImageScale",
+        "scope", "excludeScope", "layoutScope", "themeScope"
+    )
+
+    /**
+     * 检测是否为混淆版本遗留的损坏规则数据。
+     *
+     * 历史版本未 keep HighlightRule 字段名，release 包里 GSON 以 a/b 等混淆名写出到
+     * SharedPreferences；升级后这些键无法映射到当前字段。只要所有条目都不含任何
+     * 规范字段名，即判定为不可恢复的损坏数据（正常数据至少会有 id/name/pattern 键）。
+     */
+    private fun isObfuscatedLegacyJson(stored: String): Boolean {
+        return runCatching {
+            val element = JsonParser.parseString(stored)
+            if (!element.isJsonArray) return@runCatching false
+            val entries = element.asJsonArray
+            if (entries.isEmpty) return@runCatching false
+            entries.all { entry ->
+                !entry.isJsonObject || entry.asJsonObject.keySet().none { it in canonicalFieldNames }
+            }
+        }.getOrDefault(false)
     }
 }
