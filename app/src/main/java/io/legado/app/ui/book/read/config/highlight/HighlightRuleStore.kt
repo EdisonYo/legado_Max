@@ -137,30 +137,41 @@ object HighlightRuleStore {
         backupData: BackupData,
         backupRootPath: String? = null,
     ) {
-        // 从备份目录恢复背景图文件，并更新规则中的 bgImage 路径
-        val restoredRules = if (backupRootPath != null) {
-            backupData.rules.map { rule ->
-                val restoredPath = HighlightRuleBackgroundManager.restoreFromBackup(
-                    context, backupRootPath, rule.bgImage
-                )
-                if (restoredPath != null && restoredPath != rule.bgImage) {
-                    rule.copy(bgImage = restoredPath)
-                } else {
-                    rule
+        // GSON 通过反射反序列化，混淆版本写出的旧备份键名对不上时，
+        // 非空类型字段实际会为 null，这里统一取可空值兜底，
+        // 否则恢复过程 NPE 被 Restore 的 runCatching 吞掉，高亮规则段静默跳过
+        val backupRules: List<HighlightRule>? = backupData.rules
+        val backupGroups: List<String>? = backupData.groups
+        val backupCurrentGroup: String? = backupData.currentGroup
+        if (backupRules != null) {
+            // 从备份目录恢复背景图文件，并更新规则中的 bgImage 路径
+            val restoredRules = if (backupRootPath != null) {
+                backupRules.map { rule ->
+                    val restoredPath = HighlightRuleBackgroundManager.restoreFromBackup(
+                        context, backupRootPath, rule.bgImage
+                    )
+                    if (restoredPath != null && restoredPath != rule.bgImage) {
+                        rule.copy(bgImage = restoredPath)
+                    } else {
+                        rule
+                    }
                 }
+            } else {
+                backupRules
             }
-        } else {
-            backupData.rules
+            save(context, restoredRules)
+            // 三个旧开关跟随规则数据恢复：规则键缺失的损坏备份不误关开关
+            context.putPrefBoolean(PreferKey.highlightRuleDialog, backupData.dialogEnabled)
+            context.putPrefBoolean(PreferKey.highlightRuleBookTitle, backupData.bookTitleEnabled)
+            context.putPrefBoolean(PreferKey.highlightRuleBracketNote, backupData.bracketNoteEnabled)
         }
-        save(context, restoredRules)
-        HighlightRuleGroupStore.save(context, backupData.groups)
-        context.putPrefBoolean(PreferKey.highlightRuleDialog, backupData.dialogEnabled)
-        context.putPrefBoolean(PreferKey.highlightRuleBookTitle, backupData.bookTitleEnabled)
-        context.putPrefBoolean(PreferKey.highlightRuleBracketNote, backupData.bracketNoteEnabled)
+        if (backupGroups != null) {
+            HighlightRuleGroupStore.save(context, backupGroups)
+        }
         val groups = HighlightRuleGroupStore.load(context)
         context.putPrefString(
             PreferKey.highlightRuleCurrentGroup,
-            backupData.currentGroup.takeIf { groups.contains(it) } ?: ""
+            backupCurrentGroup?.takeIf { groups.contains(it) }.orEmpty()
         )
     }
 
