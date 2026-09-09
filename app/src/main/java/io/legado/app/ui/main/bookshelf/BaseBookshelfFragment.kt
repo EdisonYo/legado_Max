@@ -222,12 +222,14 @@ abstract class BaseBookshelfFragment(layoutId: Int) : VMBaseFragment<BookshelfVi
                         swShowMoreInfo.isChecked = AppConfig.showMoreInfoInList
                         swShowIntro.isChecked = AppConfig.showIntroInList
                         swShowCategoryInfo.isChecked = AppConfig.showCategoryInfoInList
+                        swShowReadProgress.isChecked = AppConfig.showBookshelfReadProgress
                         // 书籍外边框开关（仅在列表/紧凑列表视图时显示，默认关闭）
                         swShowBookBorder.visibility = if (bookLayout <= 1) View.VISIBLE else View.GONE
                         swShowBookBorder.isChecked = AppConfig.showBookBorder
                         // 子菜单可见性
                         swShowIntro.visibility = if (AppConfig.showMoreInfoInList) View.VISIBLE else View.GONE
                         swShowCategoryInfo.visibility = if (AppConfig.showMoreInfoInList) View.VISIBLE else View.GONE
+                        swShowReadProgress.visibility = if (AppConfig.showMoreInfoInList) View.VISIBLE else View.GONE
                         // 简介行数选择器可见性（仅在显示简介勾选时显示）
                         tvIntroLines.visibility = if (AppConfig.showMoreInfoInList && AppConfig.showIntroInList) View.VISIBLE else View.GONE
                         // 更新简介行数显示文本
@@ -236,6 +238,7 @@ abstract class BaseBookshelfFragment(layoutId: Int) : VMBaseFragment<BookshelfVi
                         swShowMoreInfo.setOnCheckedChangeListener { _, isChecked ->
                             swShowIntro.visibility = if (isChecked) View.VISIBLE else View.GONE
                             swShowCategoryInfo.visibility = if (isChecked) View.VISIBLE else View.GONE
+                            swShowReadProgress.visibility = if (isChecked) View.VISIBLE else View.GONE
                             // 更新简介行数选择器可见性
                             tvIntroLines.visibility = if (isChecked && swShowIntro.isChecked) View.VISIBLE else View.GONE
                         }
@@ -329,6 +332,10 @@ abstract class BaseBookshelfFragment(layoutId: Int) : VMBaseFragment<BookshelfVi
                     }
                     if (AppConfig.showCategoryInfoInList != swShowCategoryInfo.isChecked) {
                         AppConfig.showCategoryInfoInList = swShowCategoryInfo.isChecked
+                        refreshBookshelf = true
+                    }
+                    if (AppConfig.showBookshelfReadProgress != swShowReadProgress.isChecked) {
+                        AppConfig.showBookshelfReadProgress = swShowReadProgress.isChecked
                         refreshBookshelf = true
                     }
                     // 简介行数已在 NumberPickerDialog 回调中保存，无需在此处保存

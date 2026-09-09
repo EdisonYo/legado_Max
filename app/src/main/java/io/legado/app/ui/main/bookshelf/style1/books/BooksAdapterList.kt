@@ -12,6 +12,7 @@ import io.legado.app.base.adapter.ItemViewHolder
 import io.legado.app.data.dao.BookShelfDisplay
 import io.legado.app.databinding.ItemBookshelfListBinding
 import io.legado.app.help.config.AppConfig
+import io.legado.app.lib.theme.accentColor
 import io.legado.app.lib.theme.bookBorderBackground
 import io.legado.app.utils.gone
 import io.legado.app.utils.invisible
@@ -65,6 +66,7 @@ class BooksAdapterList(
             ivCover.load(item, false)
             upRefresh(binding, item)
             upLastUpdateTime(binding, item)
+            upReadProgress(binding, item)
             // 显示简介和标签（仅在列表视图启用"显示更多信息"时）
             upMoreInfo(binding, item)
         } else {
@@ -77,7 +79,10 @@ class BooksAdapterList(
                         "dur" -> tvRead.text = item.durChapterTitle
                         "last" -> tvLast.text = item.latestChapterTitle
                         "cover" -> ivCover.load(item, false, fragment, lifecycle)
-                        "refresh" -> upRefresh(binding, item)
+                        "refresh" -> {
+                            upRefresh(binding, item)
+                            upReadProgress(binding, item)
+                        }
                         "lastUpdateTime" -> upLastUpdateTime(binding, item)
                         "moreInfo" -> upMoreInfo(binding, item)
                     }
@@ -109,6 +114,20 @@ class BooksAdapterList(
             }
         } else {
             binding.tvLastUpdateTime.text = ""
+        }
+    }
+
+    private fun upReadProgress(binding: ItemBookshelfListBinding, item: BookShelfDisplay) {
+        val progress = if (AppConfig.showBookshelfReadProgress) item.readProgress() else null
+        if (progress == null) {
+            binding.pbReadProgress.gone()
+            binding.tvReadPercent.gone()
+        } else {
+            binding.pbReadProgress.setIndicatorColor(binding.pbReadProgress.context.accentColor)
+            binding.pbReadProgress.visible()
+            binding.pbReadProgress.progress = (progress * 100).toInt()
+            binding.tvReadPercent.visible()
+            binding.tvReadPercent.text = "${(progress * 100).toInt()}%"
         }
     }
 

@@ -7,6 +7,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.flexbox.FlexboxLayout
+import com.google.android.material.progressindicator.LinearProgressIndicator
 import io.legado.app.data.entities.Book
 import io.legado.app.data.entities.BookGroup
 import io.legado.app.databinding.ItemBookshelfGridGroupBinding
@@ -14,7 +15,9 @@ import io.legado.app.databinding.ItemBookshelfList2Binding
 import io.legado.app.databinding.ItemBookshelfListBinding
 import io.legado.app.databinding.ItemBookshelfListGroupBinding
 import io.legado.app.help.book.isLocal
+import io.legado.app.help.book.readProgress
 import io.legado.app.help.config.AppConfig
+import io.legado.app.lib.theme.accentColor
 import io.legado.app.lib.theme.bookBorderBackground
 import io.legado.app.utils.gone
 import io.legado.app.utils.invisible
@@ -27,6 +30,20 @@ import splitties.views.onLongClick
 @Suppress("UNUSED_PARAMETER")
 class BooksAdapterList(context: Context, callBack: CallBack) :
     BaseBooksAdapter<RecyclerView.ViewHolder>(context, callBack) {
+
+    private fun updateReadProgress(pb: LinearProgressIndicator, tvReadPercent: TextView, item: Book) {
+        val progress = if (AppConfig.showBookshelfReadProgress) item.readProgress() else null
+        if (progress == null) {
+            pb.gone()
+            tvReadPercent.gone()
+        } else {
+            pb.setIndicatorColor(pb.context.accentColor)
+            pb.visible()
+            pb.progress = (progress * 100).toInt()
+            tvReadPercent.visible()
+            tvReadPercent.text = "${(progress * 100).toInt()}%"
+        }
+    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         return when (viewType) {
@@ -101,6 +118,7 @@ class BooksAdapterList(context: Context, callBack: CallBack) :
             ivRead.visible()
             upRefresh(this, item)
             upLastUpdateTime(binding, item)
+            updateReadProgress(binding.pbReadProgress, binding.tvReadPercent, item)
             // 显示简介和标签（仅在列表视图启用"显示更多信息"时）
             upMoreInfo(binding, item)
         }
@@ -122,7 +140,10 @@ class BooksAdapterList(context: Context, callBack: CallBack) :
                                 false
                             )
 
-                            "refresh" -> upRefresh(this, item)
+                            "refresh" -> {
+                                upRefresh(this, item)
+                                updateReadProgress(binding.pbReadProgress, binding.tvReadPercent, item)
+                            }
                             "lastUpdateTime" -> upLastUpdateTime(binding, item)
                             "moreInfo" -> upMoreInfo(binding, item)
                         }
@@ -262,6 +283,7 @@ class BooksAdapterList(context: Context, callBack: CallBack) :
             ivLast.visible()
             upRefresh(this, item)
             upLastUpdateTime(binding, item)
+            updateReadProgress(binding.pbReadProgress, binding.tvReadPercent, item)
         }
 
         fun onBind(item: Book, position: Int, payloads: MutableList<Any>) = binding.run {
@@ -281,7 +303,10 @@ class BooksAdapterList(context: Context, callBack: CallBack) :
                                 false
                             )
 
-                            "refresh" -> upRefresh(this, item)
+                            "refresh" -> {
+                                upRefresh(this, item)
+                                updateReadProgress(binding.pbReadProgress, binding.tvReadPercent, item)
+                            }
                             "lastUpdateTime" -> upLastUpdateTime(binding, item)
                         }
                     }

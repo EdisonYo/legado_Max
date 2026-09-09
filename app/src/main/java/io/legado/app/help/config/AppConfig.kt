@@ -353,6 +353,12 @@ object AppConfig : SharedPreferences.OnSharedPreferenceChangeListener {
             appCtx.putPrefBoolean(PreferKey.showCategoryInfoInList, value)
         }
 
+    var showBookshelfReadProgress: Boolean
+        get() = appCtx.getPrefBoolean(PreferKey.showBookshelfReadProgress, false)
+        set(value) {
+            appCtx.putPrefBoolean(PreferKey.showBookshelfReadProgress, value)
+        }
+
     // 书籍外边框开关（默认关闭，仅在列表/紧凑列表视图时生效）
     var showBookBorder: Boolean
         get() = appCtx.getPrefBoolean(PreferKey.showBookBorder, false)

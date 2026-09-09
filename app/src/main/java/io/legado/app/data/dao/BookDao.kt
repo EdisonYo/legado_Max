@@ -37,7 +37,7 @@ data class ShelfKey(
  *
  * 仅包含书架 UI 展示所需的字段，排除 [Book] 中不在书架界面使用的字段
  * （tocUrl、charset、variable、syncTime、durVolumeIndex、chapterInVolumeIndex、
- * durChapterPos、originOrder、lastCheckTime），减少 Room 查询的内存开销。
+ * originOrder、lastCheckTime），减少 Room 查询的内存开销。
  *
  * SQL 层面已包含 `WHERE (type & notShelf) = 0` 过滤和 `ORDER BY` 排序，
  * 避免在内存中做过滤和排序。
@@ -66,6 +66,7 @@ data class BookShelfDisplay(
     val totalChapterNum: Int,
     val durChapterTitle: String?,
     val durChapterIndex: Int,
+    val durChapterPos: Int,
     val durChapterTime: Long,
     val canUpdate: Boolean,
     val order: Int,
@@ -119,6 +120,17 @@ data class BookShelfDisplay(
         return max(simulatedTotalChapterNum() - durChapterIndex - 1, 0)
     }
 
+    /**
+     * 阅读进度 0..1；null = 未读（从未打开）。
+     * 单章书（总章 <= 1）已读即 1f（无章内位置信息时的兜底）；
+     * 多章书按章节索引占比计算。供书架"显示阅读进度"使用。
+     */
+    fun readProgress(): Float? {
+        if (durChapterIndex == 0 && durChapterPos == 0) return null
+        if (totalChapterNum <= 1) return 1f
+        return (durChapterIndex.toFloat() / (totalChapterNum - 1)).coerceIn(0f, 1f)
+    }
+
     private fun simulatedTotalChapterNum(): Int {
         return if (readSimulating()) {
             val currentDate = LocalDate.now()
@@ -166,6 +178,7 @@ data class BookShelfDisplay(
             totalChapterNum = totalChapterNum,
             durChapterTitle = durChapterTitle,
             durChapterIndex = durChapterIndex,
+            durChapterPos = durChapterPos,
             durChapterTime = durChapterTime,
             canUpdate = canUpdate,
             order = order,
@@ -233,7 +246,7 @@ interface BookDao {
         """
         SELECT bookUrl, origin, originName, name, author, kind, customTag, intro, customIntro,
         coverUrl, customCoverUrl, wordCount, type, `group`, latestChapterTitle, latestChapterTime,
-        lastCheckCount, totalChapterNum, durChapterTitle, durChapterIndex, durChapterTime,
+        lastCheckCount, totalChapterNum, durChapterTitle, durChapterIndex, durChapterPos, durChapterTime,
         canUpdate, `order`, readConfig
         FROM books
         WHERE (type & ${BookType.notShelf}) = 0
@@ -246,7 +259,7 @@ interface BookDao {
         """
         SELECT bookUrl, origin, originName, name, author, kind, customTag, intro, customIntro,
         coverUrl, customCoverUrl, wordCount, type, `group`, latestChapterTitle, latestChapterTime,
-        lastCheckCount, totalChapterNum, durChapterTitle, durChapterIndex, durChapterTime,
+        lastCheckCount, totalChapterNum, durChapterTitle, durChapterIndex, durChapterPos, durChapterTime,
         canUpdate, `order`, readConfig
         FROM books
         WHERE (type & ${BookType.notShelf}) = 0
@@ -263,7 +276,7 @@ interface BookDao {
         """
         SELECT bookUrl, origin, originName, name, author, kind, customTag, intro, customIntro,
         coverUrl, customCoverUrl, wordCount, type, `group`, latestChapterTitle, latestChapterTime,
-        lastCheckCount, totalChapterNum, durChapterTitle, durChapterIndex, durChapterTime,
+        lastCheckCount, totalChapterNum, durChapterTitle, durChapterIndex, durChapterPos, durChapterTime,
         canUpdate, `order`, readConfig
         FROM books
         WHERE (type & ${BookType.notShelf}) = 0
@@ -277,7 +290,7 @@ interface BookDao {
         """
         SELECT bookUrl, origin, originName, name, author, kind, customTag, intro, customIntro,
         coverUrl, customCoverUrl, wordCount, type, `group`, latestChapterTitle, latestChapterTime,
-        lastCheckCount, totalChapterNum, durChapterTitle, durChapterIndex, durChapterTime,
+        lastCheckCount, totalChapterNum, durChapterTitle, durChapterIndex, durChapterPos, durChapterTime,
         canUpdate, `order`, readConfig
         FROM books
         WHERE (type & ${BookType.notShelf}) = 0
@@ -291,7 +304,7 @@ interface BookDao {
         """
         SELECT bookUrl, origin, originName, name, author, kind, customTag, intro, customIntro,
         coverUrl, customCoverUrl, wordCount, type, `group`, latestChapterTitle, latestChapterTime,
-        lastCheckCount, totalChapterNum, durChapterTitle, durChapterIndex, durChapterTime,
+        lastCheckCount, totalChapterNum, durChapterTitle, durChapterIndex, durChapterPos, durChapterTime,
         canUpdate, `order`, readConfig
         FROM books
         WHERE (type & ${BookType.notShelf}) = 0
@@ -305,7 +318,7 @@ interface BookDao {
         """
         SELECT bookUrl, origin, originName, name, author, kind, customTag, intro, customIntro,
         coverUrl, customCoverUrl, wordCount, type, `group`, latestChapterTitle, latestChapterTime,
-        lastCheckCount, totalChapterNum, durChapterTitle, durChapterIndex, durChapterTime,
+        lastCheckCount, totalChapterNum, durChapterTitle, durChapterIndex, durChapterPos, durChapterTime,
         canUpdate, `order`, readConfig
         FROM books
         WHERE (type & ${BookType.notShelf}) = 0
@@ -322,7 +335,7 @@ interface BookDao {
         """
         SELECT bookUrl, origin, originName, name, author, kind, customTag, intro, customIntro,
         coverUrl, customCoverUrl, wordCount, type, `group`, latestChapterTitle, latestChapterTime,
-        lastCheckCount, totalChapterNum, durChapterTitle, durChapterIndex, durChapterTime,
+        lastCheckCount, totalChapterNum, durChapterTitle, durChapterIndex, durChapterPos, durChapterTime,
         canUpdate, `order`, readConfig
         FROM books
         WHERE (type & ${BookType.notShelf}) = 0
@@ -337,7 +350,7 @@ interface BookDao {
         """
         SELECT bookUrl, origin, originName, name, author, kind, customTag, intro, customIntro,
         coverUrl, customCoverUrl, wordCount, type, `group`, latestChapterTitle, latestChapterTime,
-        lastCheckCount, totalChapterNum, durChapterTitle, durChapterIndex, durChapterTime,
+        lastCheckCount, totalChapterNum, durChapterTitle, durChapterIndex, durChapterPos, durChapterTime,
         canUpdate, `order`, readConfig
         FROM books
         WHERE (type & ${BookType.notShelf}) = 0
@@ -351,7 +364,7 @@ interface BookDao {
         """
         SELECT bookUrl, origin, originName, name, author, kind, customTag, intro, customIntro,
         coverUrl, customCoverUrl, wordCount, type, `group`, latestChapterTitle, latestChapterTime,
-        lastCheckCount, totalChapterNum, durChapterTitle, durChapterIndex, durChapterTime,
+        lastCheckCount, totalChapterNum, durChapterTitle, durChapterIndex, durChapterPos, durChapterTime,
         canUpdate, `order`, readConfig
         FROM books
         WHERE (type & ${BookType.notShelf}) = 0

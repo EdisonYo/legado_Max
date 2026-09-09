@@ -9,6 +9,7 @@ import io.legado.app.base.adapter.ItemViewHolder
 import io.legado.app.data.dao.BookShelfDisplay
 import io.legado.app.databinding.ItemBookshelfList2Binding
 import io.legado.app.help.config.AppConfig
+import io.legado.app.lib.theme.accentColor
 import io.legado.app.lib.theme.bookBorderBackground
 import io.legado.app.utils.invisible
 import io.legado.app.utils.toTimeAgo
@@ -64,6 +65,7 @@ class BooksAdapterList2(
             ivCover.load(item, false)
             upRefresh(binding, item)
             upLastUpdateTime(binding, item)
+            upReadProgress(binding, item)
         } else {
             for (i in payloads.indices) {
                 val bundle = payloads[i] as Bundle
@@ -74,7 +76,10 @@ class BooksAdapterList2(
                         "dur" -> tvRead.text = item.durChapterTitle
                         "last" -> tvLast.text = item.latestChapterTitle
                         "cover" -> ivCover.load(item, false, fragment, lifecycle)
-                        "refresh" -> upRefresh(binding, item)
+                        "refresh" -> {
+                            upRefresh(binding, item)
+                            upReadProgress(binding, item)
+                        }
                         "lastUpdateTime" -> upLastUpdateTime(binding, item)
                     }
                 }
@@ -105,6 +110,20 @@ class BooksAdapterList2(
             }
         } else {
             binding.tvLastUpdateTime.text = ""
+        }
+    }
+
+    private fun upReadProgress(binding: ItemBookshelfList2Binding, item: BookShelfDisplay) {
+        val progress = if (AppConfig.showBookshelfReadProgress) item.readProgress() else null
+        if (progress == null) {
+            binding.pbReadProgress.gone()
+            binding.tvReadPercent.gone()
+        } else {
+            binding.pbReadProgress.setIndicatorColor(binding.pbReadProgress.context.accentColor)
+            binding.pbReadProgress.visible()
+            binding.pbReadProgress.progress = (progress * 100).toInt()
+            binding.tvReadPercent.visible()
+            binding.tvReadPercent.text = "${(progress * 100).toInt()}%"
         }
     }
 

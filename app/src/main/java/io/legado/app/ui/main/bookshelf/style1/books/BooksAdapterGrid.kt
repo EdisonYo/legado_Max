@@ -9,6 +9,7 @@ import io.legado.app.data.dao.BookShelfDisplay
 import io.legado.app.databinding.ItemBookshelfGrid2Binding
 import io.legado.app.databinding.ItemBookshelfGridBinding
 import io.legado.app.help.config.AppConfig
+import io.legado.app.lib.theme.accentColor
 import io.legado.app.utils.gone
 import io.legado.app.utils.invisible
 import io.legado.app.utils.visible
@@ -51,6 +52,7 @@ class BooksAdapterGrid(context: Context, private val callBack: CallBack) :
                     }
                     ivCover.load(item, false)
                     upRefresh(binding, item)
+                    upReadProgress(binding, item)
                 } else {
                     for (i in payloads.indices) {
                         val bundle = payloads[i] as Bundle
@@ -58,7 +60,10 @@ class BooksAdapterGrid(context: Context, private val callBack: CallBack) :
                             when (it) {
                                 "name" -> tvName.text = item.name
                                 "cover" -> ivCover.load(item, false)
-                                "refresh" -> upRefresh(binding, item)
+                                "refresh" -> {
+                                    upRefresh(binding, item)
+                                    upReadProgress(binding, item)
+                                }
                             }
                         }
                     }
@@ -69,6 +74,7 @@ class BooksAdapterGrid(context: Context, private val callBack: CallBack) :
                     tvName.text = item.name
                     ivCover.load(item, false)
                     upRefresh(binding, item)
+                    upReadProgress(binding, item)
                 } else {
                     for (i in payloads.indices) {
                         val bundle = payloads[i] as Bundle
@@ -76,7 +82,10 @@ class BooksAdapterGrid(context: Context, private val callBack: CallBack) :
                             when (it) {
                                 "name" -> tvName.text = item.name
                                 "cover" -> ivCover.load(item, false)
-                                "refresh" -> upRefresh(binding, item)
+                                "refresh" -> {
+                                    upRefresh(binding, item)
+                                    upReadProgress(binding, item)
+                                }
                             }
                         }
                     }
@@ -116,6 +125,22 @@ class BooksAdapterGrid(context: Context, private val callBack: CallBack) :
                     }
                 }
             }
+        }
+    }
+
+    private fun upReadProgress(binding: ViewBinding, item: BookShelfDisplay) {
+        val progress = if (AppConfig.showBookshelfReadProgress) item.readProgress() else null
+        val pb = when (binding) {
+            is ItemBookshelfGridBinding -> binding.pbReadProgress
+            is ItemBookshelfGrid2Binding -> binding.pbReadProgress
+            else -> return
+        }
+        if (progress == null) {
+            pb.gone()
+        } else {
+            pb.setIndicatorColor(pb.context.accentColor)
+            pb.visible()
+            pb.progress = (progress * 100).toInt()
         }
     }
 

@@ -2035,6 +2035,7 @@
     <!-- Show more info in list view -->
     <string name="show_more_info">Show More Info</string>
     <string name="show_intro">Show Intro</string>
+    <string name="show_bookshelf_read_progress">Show Reading Progress</string>
     <string name="show_category_info">Show Category Info, etc.</string>
     <string name="show_book_border">Show Border</string>
     <!-- Intro lines selection -->
