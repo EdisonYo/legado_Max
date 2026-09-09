@@ -2,11 +2,9 @@ package io.legado.app.ui.book.info
 
 import android.app.Application
 import android.os.Bundle
-import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.CheckBox
-import androidx.appcompat.widget.Toolbar
 import androidx.core.view.updateLayoutParams
 import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.viewModels
@@ -18,8 +16,8 @@ import io.legado.app.databinding.DialogBookTagEditBinding
 import io.legado.app.help.book.BookTagHelper
 import io.legado.app.help.book.BookTagManagement
 import io.legado.app.help.config.AppConfig
+import io.legado.app.lib.theme.accentColor
 import io.legado.app.lib.theme.primaryColor
-import io.legado.app.utils.applyTint
 import io.legado.app.utils.setLayout
 import io.legado.app.utils.viewbindingdelegate.viewBinding
 import java.util.Locale
@@ -30,8 +28,7 @@ import java.util.Locale
  * 复用书架标签体系（[Book.customTag] + [BookTagHelper]）：
  * 勾选已有标签 + 输入新标签，保存时合并写回书籍的 customTag。
  */
-class BookTagSelectDialog() : BaseDialogFragment(R.layout.dialog_book_tag_edit, true),
-    Toolbar.OnMenuItemClickListener {
+class BookTagSelectDialog() : BaseDialogFragment(R.layout.dialog_book_tag_edit, true) {
 
     private val binding by viewBinding(DialogBookTagEditBinding::bind)
     private val viewModel by viewModels<ViewModel>()
@@ -60,16 +57,26 @@ class BookTagSelectDialog() : BaseDialogFragment(R.layout.dialog_book_tag_edit, 
             dismiss()
             return
         }
-        // 滚动区按屏幕高度比例约束，避免横屏/小屏时卡片（含工具栏保存按钮）溢出屏幕
+        // 滚动区按屏幕高度比例约束，避免横屏/小屏时卡片（含底部按钮行）溢出屏幕
         binding.scrollView.updateLayoutParams {
             height = (resources.displayMetrics.heightPixels * 0.4f).toInt()
         }
         binding.etFilter.doAfterTextChanged {
             filterTags(it?.toString().orEmpty())
         }
-        binding.toolBar.inflateMenu(R.menu.save)
-        binding.toolBar.menu.applyTint(requireContext())
-        binding.toolBar.setOnMenuItemClickListener(this)
+        binding.tvCancel.setOnClickListener {
+            dismissAllowingStateLoss()
+        }
+        binding.tvOk.setTextColor(requireContext().accentColor)
+        binding.tvOk.setOnClickListener {
+            val selected = (0 until binding.llTags.childCount)
+                .mapNotNull { binding.llTags.getChildAt(it) as? CheckBox }
+                .filter { it.isChecked }
+                .map { it.text.toString() }
+            val newTags = BookTagHelper.parse(binding.etNewTags.text?.toString())
+            callback?.setTags(BookTagManagement.mergeTags(selected, newTags))
+            dismissAllowingStateLoss()
+        }
     }
 
     private fun renderTags() {
@@ -97,21 +104,6 @@ class BookTagSelectDialog() : BaseDialogFragment(R.layout.dialog_book_tag_edit, 
                 View.GONE
             }
         }
-    }
-
-    override fun onMenuItemClick(item: MenuItem?): Boolean {
-        when (item?.itemId) {
-            R.id.menu_save -> {
-                val selected = (0 until binding.llTags.childCount)
-                    .mapNotNull { binding.llTags.getChildAt(it) as? CheckBox }
-                    .filter { it.isChecked }
-                    .map { it.text.toString() }
-                val newTags = BookTagHelper.parse(binding.etNewTags.text?.toString())
-                callback?.setTags(BookTagManagement.mergeTags(selected, newTags))
-                dismissAllowingStateLoss()
-            }
-        }
-        return item?.itemId == R.id.menu_save
     }
 
     val callback get() = (parentFragment as? Callback) ?: (activity as? Callback)
