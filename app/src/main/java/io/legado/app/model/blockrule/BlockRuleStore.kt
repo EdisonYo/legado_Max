@@ -1,6 +1,7 @@
 package io.legado.app.model.blockrule
 
 import android.content.Context
+import com.google.gson.JsonParser
 import io.legado.app.constant.PreferKey
 import io.legado.app.data.entities.RssArticle
 import io.legado.app.data.entities.SearchBook
@@ -10,6 +11,7 @@ import io.legado.app.utils.fromJsonArray
 import io.legado.app.utils.getPrefBoolean
 import io.legado.app.utils.getPrefString
 import io.legado.app.utils.putPrefString
+import io.legado.app.utils.removePref
 import java.util.UUID
 
 /**
@@ -45,6 +47,12 @@ object BlockRuleStore {
         cachedRules?.let { return it.toMutableList() }
         val stored = context.getPrefString(PreferKey.blockRuleItems)
         if (stored.isNullOrBlank()) {
+            return mutableListOf()
+        }
+        // 混淆版本遗留数据：键名是 a/b 等混淆名，反序列化后 pattern 等字段全为空，
+        // 表现为规则列表还在但屏蔽不生效；数据不可恢复，直接清除
+        if (isObfuscatedLegacyJson(stored)) {
+            context.removePref(PreferKey.blockRuleItems)
             return mutableListOf()
         }
         val rules = GSON.fromJsonArray<BlockRule>(stored).getOrNull()?.toMutableList()
@@ -317,5 +325,30 @@ object BlockRuleStore {
             scope = validatedScope,
             rssScope = validatedRssScope,
         )
+    }
+
+    /** BlockRule 的规范字段名，用于识别混淆版本写出的损坏 JSON */
+    private val canonicalFieldNames = setOf(
+        "id", "name", "pattern", "isRegex", "group", "targetScope",
+        "rssTargetScope", "enabled", "scope", "rssScope"
+    )
+
+    /**
+     * 检测是否为混淆版本遗留的损坏规则数据。
+     *
+     * 历史版本未 keep BlockRule 字段名，release 包里 GSON 以 a/b 等混淆名写出到
+     * SharedPreferences；升级后这些键无法映射到当前字段。只要所有条目都不含任何
+     * 规范字段名，即判定为不可恢复的损坏数据（正常数据至少会有 id/name/pattern 键）。
+     */
+    private fun isObfuscatedLegacyJson(stored: String): Boolean {
+        return runCatching {
+            val element = JsonParser.parseString(stored)
+            if (!element.isJsonArray) return@runCatching false
+            val entries = element.asJsonArray
+            if (entries.isEmpty) return@runCatching false
+            entries.all { entry ->
+                !entry.isJsonObject || entry.asJsonObject.keySet().none { it in canonicalFieldNames }
+            }
+        }.getOrDefault(false)
     }
 }

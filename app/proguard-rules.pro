@@ -65,6 +65,9 @@
 # 字段名被混淆会导致升级后规则失效/丢失、备份恢复失败、导出键名变成 a/b 等乱码键
 -keep class io.legado.app.ui.book.read.config.highlight.HighlightRule{*;}
 -keep class io.legado.app.ui.book.read.config.highlight.HighlightRuleStore$BackupData{*;}
+# 屏蔽规则数据类：通过 GSON 持久化到 SharedPreferences（exploreBlockRuleItems），
+# 并随 config.xml 参与备份恢复，字段名被混淆会导致升级后规则失效、剪贴板导出键名乱码
+-keep class io.legado.app.model.blockrule.BlockRule{*;}
 -keep class io.legado.app.help.storage.BookCacheIndex{*;}
 -keep class io.legado.app.help.storage.ChapterCacheInfo{*;}
 -keep class io.legado.app.ui.book.cacheSelector.BookCacheIndex{*;}
