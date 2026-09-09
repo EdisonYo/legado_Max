@@ -11,11 +11,17 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -266,11 +272,21 @@ private fun BlockRuleConfigContent(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = pageCardContainerColor()
+        containerColor = pageCardContainerColor(),
+        // 只保留 Bottom 侧 insets：M3 默认的 safeDrawing(Top+Bottom) 中 Top 部分会因
+        // ModalBottomSheet 内部 consumeWindowInsets(top = sheetState.offset) 随 offset 变化，
+        // 导致内容顶 padding → sheet 高度 → Expanded 锚点(fullHeight-sheetHeight) 联动。
+        // 规则较多时内容高度接近满屏，形成正反馈，滑动列表时整个弹窗持续上下抖动；
+        // 去掉 Top 侧即可切断该反馈回路。
+        contentWindowInsets = { WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom) }
     ) {
+        // 顶部用不受消耗链影响的静态状态栏高度补偿（asPaddingValues 不扣除
+        // consumeWindowInsets 传入的 offset），满屏时标题不会顶到状态栏下
+        val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .padding(top = statusBarTop)
                 .padding(horizontal = 16.dp)
                 .padding(bottom = 32.dp)
         ) {

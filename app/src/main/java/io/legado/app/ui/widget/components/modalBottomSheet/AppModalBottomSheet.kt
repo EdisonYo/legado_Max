@@ -4,9 +4,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -41,12 +47,22 @@ fun AppModalBottomSheet(
             sheetState = sheetState,
             modifier = modifier,
             containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.onSurface
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            // 只保留 Bottom 侧 insets：M3 默认的 safeDrawing(Top+Bottom) 中 Top 部分会因
+            // ModalBottomSheet 内部 consumeWindowInsets(top = sheetState.offset) 随 offset 变化，
+            // 导致内容顶 padding → sheet 高度 → Expanded 锚点(fullHeight-sheetHeight) 联动。
+            // 当内容高度接近满屏时形成正反馈，滑动内层列表时整个弹窗持续上下抖动；
+            // 去掉 Top 侧即可切断该反馈回路。
+            contentWindowInsets = { WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom) }
         ) {
+            // 顶部用不受消耗链影响的静态状态栏高度补偿（asPaddingValues 不扣除
+            // consumeWindowInsets 传入的 offset），满屏时标题不会顶到状态栏下
+            val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
             // 内容区域自适应高度，超长时支持滚动，样式与 BookBottomSheet 保持一致
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .padding(top = statusBarTop)
                     .padding(horizontal = 16.dp)
                     .padding(bottom = 16.dp)
                     .verticalScroll(scrollState)
