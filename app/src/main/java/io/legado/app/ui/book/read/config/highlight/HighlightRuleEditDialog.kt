@@ -757,6 +757,11 @@ class HighlightRuleEditDialog @JvmOverloads constructor(
         // 如果有背景图片，显示图片预览
         val bgImage = editingRule.bgImage.orEmpty()
         if (bgImage.isNotBlank()) {
+            // 点九图优先以 NinePatchDrawable 预览，保证拉伸效果与正文渲染一致
+            HighlightRuleBackgroundManager.getNinePatchDrawable(bgImage)?.let {
+                binding.viewBgImagePreview.background = it
+                return
+            }
             val bitmap = HighlightRuleBackgroundManager.getBitmap(bgImage)
             if (bitmap != null) {
                 val drawable = android.graphics.drawable.BitmapDrawable(resources, bitmap)

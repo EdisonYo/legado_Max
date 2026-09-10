@@ -289,6 +289,8 @@ data class HighlightRule(
 | 1 | 拉伸 | 拉伸填充 |
 | 2 | 裁剪 | 居中裁剪 |
 
+> **点九图支持**：背景图若为 .9.png（PNG 内嵌九宫格信息，与文件名无关），无论适配方式取何值，均按九宫格拉伸铺满匹配区域渲染，与主题背景图的支持方式一致。
+
 ### 2.4 执行机制
 
 执行位置：[TextChapterLayout.kt](app/src/main/java/io/legado/app/ui/book/read/page/provider/TextChapterLayout.kt)

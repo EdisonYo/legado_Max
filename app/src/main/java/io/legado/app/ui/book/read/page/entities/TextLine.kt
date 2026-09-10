@@ -8,6 +8,7 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.Shader
+import android.graphics.drawable.NinePatchDrawable
 import android.os.Build
 import android.text.TextPaint
 import androidx.annotation.Keep
@@ -684,13 +685,19 @@ data class TextLine(
         bgImageFit: Int,
         bgImageScale: Float,
     ) {
+        val top = bgPaddingTop
+        val bottom = height - bgPaddingBottom
+        // 点九图优先：九宫格拉伸铺满匹配区域，平铺/裁剪等 bitmap 适配方式不适用
+        getBgNinePatchDrawable(bgImage)?.let { drawable ->
+            drawable.setBounds(startX.toInt(), top.toInt(), endX.toInt(), bottom.toInt())
+            drawable.draw(canvas)
+            return
+        }
         val bitmap = getBgBitmap(bgImage) ?: return
         val paint = PaintPool.obtain()
         paint.style = android.graphics.Paint.Style.FILL
         paint.isAntiAlias = true
         paint.isFilterBitmap = true
-        val top = bgPaddingTop
-        val bottom = height - bgPaddingBottom
         val rectWidth = endX - startX
         val rectHeight = bottom - top
         val scale = bgImageScale.coerceIn(0.1f, 5f)
@@ -779,6 +786,12 @@ data class TextLine(
         private val einkUnderlineWidth = 1.dpToPx().toFloat()
         private val bgBitmapCache = android.util.LruCache<String, Bitmap>(16 * 1024 * 1024)
         private val bgScaledBitmapCache = android.util.LruCache<String, Bitmap>(8 * 1024 * 1024)
+        /** 点九图缓存：点九图不能按普通 bitmap 采样缩放，需整图解码后按九宫格拉伸 */
+        private val bgNinePatchCache = android.util.LruCache<String, NinePatchDrawable>(8)
+        /** 已确认不是点九图的路径，避免每次绘制重复解码探测 */
+        private val bgNotNinePatchPaths = java.util.Collections.newSetFromMap(
+            java.util.concurrent.ConcurrentHashMap<String, Boolean>()
+        )
         private val bgSampleWidth by lazy {
             appCtx.resources.displayMetrics.widthPixels
         }
@@ -792,6 +805,59 @@ data class TextLine(
             val bitmap = loadBgBitmap(path) ?: return null
             bgBitmapCache.put(path, bitmap)
             return bitmap
+        }
+
+        /**
+         * 获取点九图（.9.png）背景的 NinePatchDrawable。
+         * 探测依据是 PNG 内嵌的九宫格 chunk（BitmapFactory 解码后 ninePatchChunk 非空），
+         * 与文件名无关，迁移/重命名后的内部文件同样可识别。
+         */
+        fun getBgNinePatchDrawable(path: String): NinePatchDrawable? {
+            if (path.isBlank() || bgNotNinePatchPaths.contains(path)) return null
+            bgNinePatchCache.get(path)?.let { return it }
+            val drawable = loadBgNinePatch(path)
+            if (drawable != null) {
+                bgNinePatchCache.put(path, drawable)
+            } else {
+                bgNotNinePatchPaths.add(path)
+            }
+            return drawable
+        }
+
+        private fun loadBgNinePatch(path: String): NinePatchDrawable? {
+            return try {
+                // 点九图不能带 inSampleSize 采样，否则拉伸区域度量失真
+                val options = BitmapFactory.Options().apply { inScaled = false }
+                val input = openBgImageStream(path) ?: return null
+                val bitmap = input.use { BitmapFactory.decodeStream(it, null, options) }
+                    ?: return null
+                if (bitmap.ninePatchChunk == null) {
+                    bitmap.recycle()
+                    return null
+                }
+                NinePatchDrawable(appCtx.resources, android.graphics.NinePatch(bitmap, bitmap.ninePatchChunk, path))
+            } catch (e: Exception) {
+                null
+            }
+        }
+
+        private fun openBgImageStream(path: String): java.io.InputStream? = try {
+            when {
+                path.startsWith("assets://") -> appCtx.assets.open(path.removePrefix("assets://"))
+                path.startsWith("content://") ->
+                    appCtx.contentResolver.openInputStream(android.net.Uri.parse(path))
+                else -> {
+                    val file = java.io.File(path)
+                    if (file.exists()) {
+                        file.inputStream()
+                    } else {
+                        val assetPath = if (path.startsWith("bg/")) path else "bg/$path"
+                        kotlin.runCatching { appCtx.assets.open(assetPath) }.getOrNull()
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            null
         }
 
         private fun getScaledBitmap(path: String, source: Bitmap, width: Int, height: Int): Bitmap {
@@ -873,6 +939,8 @@ data class TextLine(
         fun clearBgBitmapCache() {
             bgBitmapCache.evictAll()
             bgScaledBitmapCache.evictAll()
+            bgNinePatchCache.evictAll()
+            bgNotNinePatchPaths.clear()
         }
 
         fun copyBgImageToInternal(context: android.content.Context, sourcePath: String): String? {
