@@ -786,8 +786,13 @@ data class TextLine(
         private val einkUnderlineWidth = 1.dpToPx().toFloat()
         private val bgBitmapCache = android.util.LruCache<String, Bitmap>(16 * 1024 * 1024)
         private val bgScaledBitmapCache = android.util.LruCache<String, Bitmap>(8 * 1024 * 1024)
-        /** 点九图缓存：点九图不能按普通 bitmap 采样缩放，需整图解码后按九宫格拉伸 */
-        private val bgNinePatchCache = android.util.LruCache<String, NinePatchDrawable>(8)
+        /** 点九图探测的尺寸上限：超过此尺寸的图不按点九图处理，避免主线程无采样全量解码 */
+        private const val NINE_PATCH_MAX_DIM = 1024
+        /** 点九图缓存：点九图不能按普通 bitmap 采样缩放，需整图解码后按九宫格拉伸；按字节数限额防止大图占满内存 */
+        private val bgNinePatchCache = object : android.util.LruCache<String, NinePatchDrawable>(8 * 1024 * 1024) {
+            override fun sizeOf(key: String, value: NinePatchDrawable): Int =
+                value.intrinsicWidth.coerceAtLeast(1) * value.intrinsicHeight.coerceAtLeast(1) * 4
+        }
         /** 已确认不是点九图的路径，避免每次绘制重复解码探测 */
         private val bgNotNinePatchPaths = java.util.Collections.newSetFromMap(
             java.util.concurrent.ConcurrentHashMap<String, Boolean>()
@@ -815,27 +820,36 @@ data class TextLine(
         fun getBgNinePatchDrawable(path: String): NinePatchDrawable? {
             if (path.isBlank() || bgNotNinePatchPaths.contains(path)) return null
             bgNinePatchCache.get(path)?.let { return it }
-            val drawable = loadBgNinePatch(path)
-            if (drawable != null) {
-                bgNinePatchCache.put(path, drawable)
-            } else {
-                bgNotNinePatchPaths.add(path)
-            }
-            return drawable
+            // loadBgNinePatch 仅在"确认非点九图"时写入否定缓存；IO/解码失败不缓存，文件恢复后仍可重试
+            return loadBgNinePatch(path)?.also { bgNinePatchCache.put(path, it) }
         }
 
         private fun loadBgNinePatch(path: String): NinePatchDrawable? {
             return try {
-                // 点九图不能带 inSampleSize 采样，否则拉伸区域度量失真
-                val options = BitmapFactory.Options().apply { inScaled = false }
                 val input = openBgImageStream(path) ?: return null
-                val bitmap = input.use { BitmapFactory.decodeStream(it, null, options) }
-                    ?: return null
-                if (bitmap.ninePatchChunk == null) {
-                    bitmap.recycle()
-                    return null
+                input.use { stream ->
+                    val buffered = if (stream.markSupported()) stream else java.io.BufferedInputStream(stream)
+                    // 先只读尺寸：点九图背景通常很小，超大图不做无采样的全量解码，
+                    // 避免首次绘制时在主线程瞬时分配数十 MB 位图
+                    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                    buffered.mark(buffered.available())
+                    BitmapFactory.decodeStream(buffered, null, bounds)
+                    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+                    if (bounds.outWidth > NINE_PATCH_MAX_DIM || bounds.outHeight > NINE_PATCH_MAX_DIM) {
+                        bgNotNinePatchPaths.add(path)
+                        return null
+                    }
+                    buffered.reset()
+                    // 点九图不能带 inSampleSize 采样，否则拉伸区域度量失真
+                    val options = BitmapFactory.Options().apply { inScaled = false }
+                    val bitmap = BitmapFactory.decodeStream(buffered, null, options) ?: return null
+                    if (bitmap.ninePatchChunk == null) {
+                        bitmap.recycle()
+                        bgNotNinePatchPaths.add(path)
+                        return null
+                    }
+                    NinePatchDrawable(appCtx.resources, android.graphics.NinePatch(bitmap, bitmap.ninePatchChunk, path))
                 }
-                NinePatchDrawable(appCtx.resources, android.graphics.NinePatch(bitmap, bitmap.ninePatchChunk, path))
             } catch (e: Exception) {
                 null
             }

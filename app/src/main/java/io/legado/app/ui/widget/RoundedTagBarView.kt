@@ -322,16 +322,20 @@ class RoundedTagBarView @JvmOverloads constructor(
         }
     }
 
-    /** 未选中标签背景：无描边无填充，仅保留无边框水波纹作为点击反馈 */
+    /** 未选中标签背景：无描边无填充，仅保留无边框水波纹作为点击反馈（解析结果缓存，bind 时仅创建新实例） */
     private fun buildUnselectedItemBackground(): Drawable? {
-        val typedValue = TypedValue()
-        context.theme.resolveAttribute(
-            android.R.attr.selectableItemBackgroundBorderless, typedValue, true
-        )
-        return context.getDrawable(typedValue.resourceId)
+        val state = unselectedBackgroundState ?: run {
+            val typedValue = TypedValue()
+            context.theme.resolveAttribute(
+                android.R.attr.selectableItemBackgroundBorderless, typedValue, true
+            )
+            context.getDrawable(typedValue.resourceId)?.constantState
+                ?.also { unselectedBackgroundState = it }
+        }
+        return state?.newDrawable(resources)
     }
 
-    private class TagViewHolder(val textView: TextView) : RecyclerView.ViewHolder(textView)
+    private var unselectedBackgroundState: Drawable.ConstantState? = null
 
-    private val Int.dp: Int get() = (this * resources.displayMetrics.density).toInt()
+    private class TagViewHolder(val textView: TextView) : RecyclerView.ViewHolder(textView)
 }

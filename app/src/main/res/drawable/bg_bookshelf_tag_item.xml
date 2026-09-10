@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- 仅作 inflate 占位背景：实际样式由 RoundedTagBarView 在 bind 时按选中态运行时构建 -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- 选中：整圆角胶囊（左右两侧半圆），半透明强调色填充 -->
     <item android:state_selected="true">
