@@ -793,6 +793,8 @@ data class TextLine(
         private const val NINE_PATCH_MAX_DIM = 1024
         /** 内容区检测的 alpha 阈值，低于该值视为透明留白 */
         private const val CONTENT_ALPHA_THRESHOLD = 16
+        /** 点九图包裹文字时内容区之外再向外延伸的余量（dp） */
+        private const val NINE_PATCH_WRAP_EXTRA_DP = 2
         /** 点九图缓存：点九图不能按普通 bitmap 采样缩放，需整图解码后按九宫格拉伸；按字节数限额防止大图占满内存 */
         private val bgNinePatchCache = object : android.util.LruCache<String, NinePatchDrawable>(8 * 1024 * 1024) {
             override fun sizeOf(key: String, value: NinePatchDrawable): Int =
@@ -842,9 +844,9 @@ data class TextLine(
 
         /**
          * 点九图按"包裹内容"方式绘制：bounds 向外扩展内容区外的透明留白，
-         * 使其实际可见内容（气泡/边框）恰好覆盖目标区域（文字），
-         * 与主题背景图把 .9 作为 View background 的观感一致。
-         * 每侧最多扩展目标区域尺寸的 1/3，避免异常留白导致绘制区域失控。
+         * 再额外外延 [NINE_PATCH_WRAP_EXTRA_DP]dp，使可见内容（气泡/边框）完全包裹住文字
+         * 并留有少量余量，与主题背景图把 .9 作为 View background 的观感一致。
+         * 每侧总扩展量不超过目标区域尺寸的 1/3，避免异常留白导致绘制区域失控。
          */
         fun drawBgNinePatch(
             drawable: NinePatchDrawable,
@@ -857,11 +859,12 @@ data class TextLine(
         ) {
             val maxHorizontal = (right - left) / 3
             val maxVertical = (bottom - top) / 3
+            val extra = NINE_PATCH_WRAP_EXTRA_DP.dpToPx()
             drawable.setBounds(
-                left - insets.left.coerceIn(0, maxHorizontal),
-                top - insets.top.coerceIn(0, maxVertical),
-                right + insets.right.coerceIn(0, maxHorizontal),
-                bottom + insets.bottom.coerceIn(0, maxVertical),
+                left - insets.left.coerceAtMost(maxHorizontal - extra).coerceAtLeast(0) - extra,
+                top - insets.top.coerceAtMost(maxVertical - extra).coerceAtLeast(0) - extra,
+                right + insets.right.coerceAtMost(maxHorizontal - extra).coerceAtLeast(0) + extra,
+                bottom + insets.bottom.coerceAtMost(maxVertical - extra).coerceAtLeast(0) + extra,
             )
             drawable.draw(canvas)
         }
