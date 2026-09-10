@@ -67,16 +67,43 @@ class RoundedTagBarView @JvmOverloads constructor(
     private var displayMode = DisplayMode.CHIP
     private var backgroundOverrideColor: Int? = null
 
+    /** 与屏幕边缘的对齐内边距（px）；-1 表示使用默认 bookshelf_tag_bar_padding_horizontal */
+    private var edgeInsetPx = -1
+
     init {
         clipToOutline = true
         applyTopBarStyle(force = true)
-        val horizontalPadding = resources.getDimensionPixelSize(R.dimen.bookshelf_tag_bar_padding_horizontal)
-        val verticalPadding = resources.getDimensionPixelSize(R.dimen.bookshelf_tag_bar_padding_vertical)
-        setPadding(horizontalPadding, verticalPadding, horizontalPadding, verticalPadding)
+        applyEdgeInset()
         addView(
             recyclerView,
             LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
         )
+    }
+
+    /**
+     * 设置标签栏两侧与屏幕边缘的对齐内边距（px）。
+     * 传入上方分组 Tab 文字的起始偏移时，标签文字将与分组 Tab 文字对齐；
+     * 传 -1 恢复默认内边距。
+     */
+    fun setEdgeInset(px: Int) {
+        if (edgeInsetPx == px) return
+        edgeInsetPx = px
+        applyEdgeInset()
+    }
+
+    private fun applyEdgeInset() {
+        val vertical = resources.getDimensionPixelSize(R.dimen.bookshelf_tag_bar_padding_vertical)
+        val horizontal = if (edgeInsetPx >= 0) {
+            // 扣除标签项外边距与文字内边距，使标签文字的起始位置与对齐目标一致
+            (
+                edgeInsetPx -
+                    resources.getDimensionPixelSize(R.dimen.bookshelf_tag_item_margin_horizontal) -
+                    resources.getDimensionPixelSize(R.dimen.bookshelf_tag_item_padding_horizontal)
+                ).coerceAtLeast(0)
+        } else {
+            resources.getDimensionPixelSize(R.dimen.bookshelf_tag_bar_padding_horizontal)
+        }
+        setPadding(horizontal, vertical, horizontal, vertical)
     }
 
     override fun onAttachedToWindow() {
@@ -97,9 +124,7 @@ class RoundedTagBarView @JvmOverloads constructor(
         styleSignature = signature
         // 始终透明背景，不使用 TopBarConfig 的颜色/透明度作为栏背景
         background = null
-        val horizontalPadding = resources.getDimensionPixelSize(R.dimen.bookshelf_tag_bar_padding_horizontal)
-        val verticalPadding = resources.getDimensionPixelSize(R.dimen.bookshelf_tag_bar_padding_vertical)
-        setPadding(horizontalPadding, verticalPadding, horizontalPadding, verticalPadding)
+        applyEdgeInset()
         // 胶囊(Chip)样式：选中项用强调色半透明填充，未选中项用描边；文字颜色逻辑与首页排行榜多分类 Tab 一致
         adapter.selectedBackgroundColor = ColorUtils.setAlphaComponent(context.accentColor, SELECTED_BG_ALPHA)
         adapter.selectedTextColor = context.accentColor

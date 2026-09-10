@@ -337,6 +337,7 @@ class BookshelfFragment1() : BaseBookshelfFragment(R.layout.fragment_bookshelf1)
             tagSelectedIndex = 0
             tagBar?.visibility = View.VISIBLE
             tagBar?.applyTopBarStyle(force = true)
+            syncTagBarEdgeInset()
             tagBar?.submitItems(
                 currentTagList.map { RoundedTagBarView.Item(it.ifBlank { allText }) },
                 0
@@ -384,6 +385,21 @@ class BookshelfFragment1() : BaseBookshelfFragment(R.layout.fragment_bookshelf1)
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * 二级标签栏两侧内边距与上方分组 Tab 的文字起始位置对齐。
+     * TabLayout 位于 TitleBar 的 Toolbar 内，实际偏移受 contentInset 与 Tab 样式影响，
+     * 因此布局完成后运行期测量，不写死数值。
+     */
+    private fun syncTagBarEdgeInset() {
+        val tl = tabLayout ?: return
+        val tb = tagBar ?: return
+        tl.post {
+            if (!isAdded || tl.windowToken == null) return@post
+            val firstTab = tl.getTabAt(0)?.view ?: return@post
+            tb.setEdgeInset(tl.left + firstTab.left + firstTab.paddingStart)
         }
     }
 
