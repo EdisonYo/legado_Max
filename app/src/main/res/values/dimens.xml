@@ -44,7 +44,9 @@
     <!-- Bookshelf tag bar -->
     <dimen name="bookshelf_tag_bar_height">38dp</dimen>
     <dimen name="bookshelf_tag_bar_margin_horizontal">16dp</dimen>
-    <dimen name="bookshelf_tag_bar_padding_horizontal">3dp</dimen>
+    <!-- 二级标签栏两侧内边距，对齐上方分组 Tab 文字距屏幕边缘的距离：
+         toolbar contentInsetStart 16dp + TabLayout 默认 tabPaddingStart 12dp - 标签项外边距 2dp - 标签文字内边距 12dp = 14dp -->
+    <dimen name="bookshelf_tag_bar_padding_horizontal">14dp</dimen>
     <dimen name="bookshelf_tag_bar_padding_vertical">1dp</dimen>
     <dimen name="bookshelf_tag_recycler_padding_vertical">4dp</dimen>
     <dimen name="bookshelf_tag_item_height">28dp</dimen>
