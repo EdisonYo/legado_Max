@@ -689,7 +689,11 @@ data class TextLine(
         val bottom = height - bgPaddingBottom
         // 点九图优先：九宫格拉伸铺满匹配区域，平铺/裁剪等 bitmap 适配方式不适用
         getBgNinePatchDrawable(bgImage)?.let { drawable ->
-            drawBgNinePatch(drawable, canvas, startX.toInt(), top.toInt(), endX.toInt(), bottom.toInt())
+            drawBgNinePatch(
+                drawable, canvas,
+                startX.toInt(), top.toInt(), endX.toInt(), bottom.toInt(),
+                getBgNinePatchInsets(bgImage)
+            )
             return
         }
         val bitmap = getBgBitmap(bgImage) ?: return
@@ -787,6 +791,8 @@ data class TextLine(
         private val bgScaledBitmapCache = android.util.LruCache<String, Bitmap>(8 * 1024 * 1024)
         /** 点九图探测的尺寸上限：超过此尺寸的图不按点九图处理，避免主线程无采样全量解码 */
         private const val NINE_PATCH_MAX_DIM = 1024
+        /** 内容区检测的 alpha 阈值，低于该值视为透明留白 */
+        private const val CONTENT_ALPHA_THRESHOLD = 16
         /** 点九图缓存：点九图不能按普通 bitmap 采样缩放，需整图解码后按九宫格拉伸；按字节数限额防止大图占满内存 */
         private val bgNinePatchCache = object : android.util.LruCache<String, NinePatchDrawable>(8 * 1024 * 1024) {
             override fun sizeOf(key: String, value: NinePatchDrawable): Int =
@@ -796,6 +802,8 @@ data class TextLine(
         private val bgNotNinePatchPaths = java.util.Collections.newSetFromMap(
             java.util.concurrent.ConcurrentHashMap<String, Boolean>()
         )
+        /** 点九图内容区（非透明像素）外的透明留白缓存，绘制时据此向外扩展 bounds */
+        private val bgNinePatchInsets = java.util.concurrent.ConcurrentHashMap<String, android.graphics.Rect>()
         private val bgSampleWidth by lazy {
             appCtx.resources.displayMetrics.widthPixels
         }
@@ -824,9 +832,19 @@ data class TextLine(
         }
 
         /**
-         * 点九图按"包裹内容"方式绘制：bounds 向外扩展点九图自身的 padding（内容区外的留白），
-         * 使其内容区恰好覆盖目标区域（文字），与主题背景图把 .9 作为 View background 的观感一致。
-         * padding 每侧最多扩展目标区域尺寸的 1/3，避免异常 padding 指南导致绘制区域失控。
+         * 获取点九图内容区（非透明像素）外的透明留白，单位为图片原始像素。
+         * 不依赖 .9 的 padding 指南（很多 .9 的留白并不在 padding 指南范围内），
+         * 而是加载时扫描非透明像素的实际包围盒得到。
+         */
+        fun getBgNinePatchInsets(path: String): android.graphics.Rect {
+            return bgNinePatchInsets[path] ?: android.graphics.Rect()
+        }
+
+        /**
+         * 点九图按"包裹内容"方式绘制：bounds 向外扩展内容区外的透明留白，
+         * 使其实际可见内容（气泡/边框）恰好覆盖目标区域（文字），
+         * 与主题背景图把 .9 作为 View background 的观感一致。
+         * 每侧最多扩展目标区域尺寸的 1/3，避免异常留白导致绘制区域失控。
          */
         fun drawBgNinePatch(
             drawable: NinePatchDrawable,
@@ -835,16 +853,15 @@ data class TextLine(
             top: Int,
             right: Int,
             bottom: Int,
+            insets: android.graphics.Rect,
         ) {
-            val padding = android.graphics.Rect()
-            drawable.getPadding(padding)
             val maxHorizontal = (right - left) / 3
             val maxVertical = (bottom - top) / 3
             drawable.setBounds(
-                left - padding.left.coerceIn(0, maxHorizontal),
-                top - padding.top.coerceIn(0, maxVertical),
-                right + padding.right.coerceIn(0, maxHorizontal),
-                bottom + padding.bottom.coerceIn(0, maxVertical),
+                left - insets.left.coerceIn(0, maxHorizontal),
+                top - insets.top.coerceIn(0, maxVertical),
+                right + insets.right.coerceIn(0, maxHorizontal),
+                bottom + insets.bottom.coerceIn(0, maxVertical),
             )
             drawable.draw(canvas)
         }
@@ -873,11 +890,46 @@ data class TextLine(
                         bgNotNinePatchPaths.add(path)
                         return null
                     }
+                    bgNinePatchInsets[path] = computeContentInsets(bitmap)
                     NinePatchDrawable(appCtx.resources, android.graphics.NinePatch(bitmap, bitmap.ninePatchChunk, path))
                 }
             } catch (e: Exception) {
                 null
             }
+        }
+
+        /**
+         * 扫描非透明像素的实际包围盒，返回内容区距四边的留白（原始像素）。
+         * 仅在点九图加载时执行一次并缓存。
+         */
+        private fun computeContentInsets(bitmap: Bitmap): android.graphics.Rect {
+            val w = bitmap.width
+            val h = bitmap.height
+            if (w <= 0 || h <= 0) return android.graphics.Rect()
+            val pixels = IntArray(w * h)
+            bitmap.getPixels(pixels, 0, w, 0, 0, w, h)
+            fun rowHasContent(y: Int): Boolean {
+                val rowStart = y * w
+                for (x in 0 until w) {
+                    if (pixels[rowStart + x] ushr 24 > CONTENT_ALPHA_THRESHOLD) return true
+                }
+                return false
+            }
+            fun colHasContent(x: Int): Boolean {
+                for (y in 0 until h) {
+                    if (pixels[y * w + x] ushr 24 > CONTENT_ALPHA_THRESHOLD) return true
+                }
+                return false
+            }
+            var top = 0
+            var bottom = h - 1
+            var left = 0
+            var right = w - 1
+            while (top < bottom && !rowHasContent(top)) top++
+            while (bottom > top && !rowHasContent(bottom)) bottom--
+            while (left < right && !colHasContent(left)) left++
+            while (right > left && !colHasContent(right)) right--
+            return android.graphics.Rect(left, top, w - 1 - right, h - 1 - bottom)
         }
 
         private fun openBgImageStream(path: String): java.io.InputStream? = try {
@@ -980,6 +1032,7 @@ data class TextLine(
             bgScaledBitmapCache.evictAll()
             bgNinePatchCache.evictAll()
             bgNotNinePatchPaths.clear()
+            bgNinePatchInsets.clear()
         }
 
         fun copyBgImageToInternal(context: android.content.Context, sourcePath: String): String? {

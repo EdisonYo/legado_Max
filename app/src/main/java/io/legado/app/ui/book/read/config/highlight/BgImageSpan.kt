@@ -73,8 +73,11 @@ class BgImageSpan(
 
         val ninePatch = TextLine.getBgNinePatchDrawable(bgImagePath)
         if (ninePatch != null) {
-            // 点九图：九宫格拉伸并向外扩展自身 padding，使内容区包裹文字
-            TextLine.drawBgNinePatch(ninePatch, canvas, x.toInt(), top, (x + width).toInt(), bottom)
+            // 点九图：九宫格拉伸并向外扩展内容区外的透明留白，使可见内容包裹文字
+            TextLine.drawBgNinePatch(
+                ninePatch, canvas, x.toInt(), top, (x + width).toInt(), bottom,
+                TextLine.getBgNinePatchInsets(bgImagePath)
+            )
         } else {
             val bitmap = TextLine.getBgBitmap(bgImagePath)
             if (bitmap != null) {
