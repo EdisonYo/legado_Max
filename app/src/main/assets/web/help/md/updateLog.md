@@ -24,6 +24,11 @@
 - [Github分支GEd520](https://github.com/GEd520/legados)
 - [Github分支Suml-1](https://github.com/Suml-1/Legado_Max)
 
+**2026/9/10*
+- fix(书架): 阅读进度条未读轨道颜色适配主题强调色
+- feat(高亮规则): 背景图支持点九图渲染
+- style(书架): 二级标签栏标签样式优化
+
 **2026/9/09*
 - fix(高亮规则): 保留数据类字段名防止混淆致导出备份键名异常
 - fix(高亮规则): 自动重置混淆版本遗留的损坏规则数据
