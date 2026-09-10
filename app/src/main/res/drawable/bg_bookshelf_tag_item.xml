@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 选中：整圆角胶囊（左右两侧半圆），半透明强调色填充 -->
     <item android:state_selected="true">
         <shape android:shape="rectangle">
-            <corners android:radius="@dimen/ui_action_radius" />
+            <corners android:radius="@dimen/bookshelf_tag_item_corner_radius_selected" />
             <solid android:color="@color/background_card" />
         </shape>
     </item>
+    <!-- 未选中：无背景（仅文字），运行时由 RoundedTagBarView 附加无边框水波纹 -->
     <item>
         <shape android:shape="rectangle">
-            <corners android:radius="@dimen/ui_action_radius" />
             <solid android:color="@android:color/transparent" />
         </shape>
     </item>
