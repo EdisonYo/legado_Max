@@ -689,8 +689,7 @@ data class TextLine(
         val bottom = height - bgPaddingBottom
         // 点九图优先：九宫格拉伸铺满匹配区域，平铺/裁剪等 bitmap 适配方式不适用
         getBgNinePatchDrawable(bgImage)?.let { drawable ->
-            drawable.setBounds(startX.toInt(), top.toInt(), endX.toInt(), bottom.toInt())
-            drawable.draw(canvas)
+            drawBgNinePatch(drawable, canvas, startX.toInt(), top.toInt(), endX.toInt(), bottom.toInt())
             return
         }
         val bitmap = getBgBitmap(bgImage) ?: return
@@ -822,6 +821,32 @@ data class TextLine(
             bgNinePatchCache.get(path)?.let { return it }
             // loadBgNinePatch 仅在"确认非点九图"时写入否定缓存；IO/解码失败不缓存，文件恢复后仍可重试
             return loadBgNinePatch(path)?.also { bgNinePatchCache.put(path, it) }
+        }
+
+        /**
+         * 点九图按"包裹内容"方式绘制：bounds 向外扩展点九图自身的 padding（内容区外的留白），
+         * 使其内容区恰好覆盖目标区域（文字），与主题背景图把 .9 作为 View background 的观感一致。
+         * padding 每侧最多扩展目标区域尺寸的 1/3，避免异常 padding 指南导致绘制区域失控。
+         */
+        fun drawBgNinePatch(
+            drawable: NinePatchDrawable,
+            canvas: Canvas,
+            left: Int,
+            top: Int,
+            right: Int,
+            bottom: Int,
+        ) {
+            val padding = android.graphics.Rect()
+            drawable.getPadding(padding)
+            val maxHorizontal = (right - left) / 3
+            val maxVertical = (bottom - top) / 3
+            drawable.setBounds(
+                left - padding.left.coerceIn(0, maxHorizontal),
+                top - padding.top.coerceIn(0, maxVertical),
+                right + padding.right.coerceIn(0, maxHorizontal),
+                bottom + padding.bottom.coerceIn(0, maxVertical),
+            )
+            drawable.draw(canvas)
         }
 
         private fun loadBgNinePatch(path: String): NinePatchDrawable? {
