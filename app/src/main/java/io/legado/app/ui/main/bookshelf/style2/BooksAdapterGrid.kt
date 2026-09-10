@@ -3,6 +3,7 @@ package io.legado.app.ui.main.bookshelf.style2
 import android.content.Context
 import android.os.Bundle
 import android.view.ViewGroup
+import androidx.core.graphics.ColorUtils
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import io.legado.app.data.entities.Book
@@ -31,7 +32,9 @@ class BooksAdapterGrid(context: Context, callBack: CallBack) :
         if (progress == null) {
             pb.gone()
         } else {
+            // 未读轨道跟随主题强调色（半透明），避免默认轨道色与主题色脱节
             pb.setIndicatorColor(pb.context.accentColor)
+            pb.setTrackColor(ColorUtils.setAlphaComponent(pb.context.accentColor, 64))
             pb.visible()
             pb.progress = (progress * 100).toInt()
         }

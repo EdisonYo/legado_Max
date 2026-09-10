@@ -3,6 +3,7 @@ package io.legado.app.ui.main.bookshelf.style1.books
 import android.content.Context
 import android.os.Bundle
 import android.view.ViewGroup
+import androidx.core.graphics.ColorUtils
 import androidx.viewbinding.ViewBinding
 import io.legado.app.base.adapter.ItemViewHolder
 import io.legado.app.data.dao.BookShelfDisplay
@@ -138,7 +139,9 @@ class BooksAdapterGrid(context: Context, private val callBack: CallBack) :
         if (progress == null) {
             pb.gone()
         } else {
+            // 未读轨道跟随主题强调色（半透明），避免默认轨道色与主题色脱节
             pb.setIndicatorColor(pb.context.accentColor)
+            pb.setTrackColor(ColorUtils.setAlphaComponent(pb.context.accentColor, 64))
             pb.visible()
             pb.progress = (progress * 100).toInt()
         }

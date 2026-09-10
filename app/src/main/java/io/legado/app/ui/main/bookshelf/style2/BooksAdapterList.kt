@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.core.graphics.ColorUtils
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.flexbox.FlexboxLayout
 import com.google.android.material.progressindicator.LinearProgressIndicator
@@ -37,7 +38,9 @@ class BooksAdapterList(context: Context, callBack: CallBack) :
             pb.gone()
             tvReadPercent.gone()
         } else {
+            // 未读轨道跟随主题强调色（半透明），避免默认轨道色与主题色脱节
             pb.setIndicatorColor(pb.context.accentColor)
+            pb.setTrackColor(ColorUtils.setAlphaComponent(pb.context.accentColor, 64))
             pb.visible()
             pb.progress = (progress * 100).toInt()
             tvReadPercent.visible()
